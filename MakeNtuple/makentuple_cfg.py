@@ -9,7 +9,7 @@ options.setDefault( 'outputFile',
       )
 
 options.register( 'globalTag',
-      '74X_dataRun2_v2',
+      '80X_dataRun2_Candidate_2016_09_02_10_26_48',
       #'74X_dataRun2_Prompt_v1',
       #'MCRUN2_74_V9',
       #'GR_P_V56',
@@ -39,13 +39,14 @@ process = cms.Process("test")
 #process.options = cms.untracked.PSet( allowUnscheduled = cms.untracked.bool(True) )
 
 process.load("FWCore.MessageService.MessageLogger_cfi")
-process.load("METSigTuning.MakeNtuple.makentuple_cfi")
+process.load("metsigtuning.MakeNtuple.makentuple_cfi")
 #process.load("RecoMET/METProducers.METSignificanceObjects_cfi")
 
 process.load('Configuration.StandardSequences.Services_cff')
 process.load('Configuration.StandardSequences.GeometryDB_cff')
 process.load("Configuration.StandardSequences.FrontierConditions_GlobalTag_cff")
 process.load("Configuration.StandardSequences.FrontierConditions_GlobalTag_condDBv2_cff")
+#process.load('PhysicsTools.PatAlgos.slimming.metFilterPaths_cff')
 process.load("Configuration.StandardSequences.MagneticField_38T_cff")
 process.GlobalTag.globaltag = ( options.globalTag )
 
@@ -59,7 +60,9 @@ process.options.allowUnscheduled = cms.untracked.bool(True)
 process.source = cms.Source("PoolSource",
     fileNames = cms.untracked.vstring(
        #'/store/data/Run2015D/DoubleMuon/MINIAOD/16Dec2015-v1/10000/00039A2E-D7A7-E511-98EE-3417EBE64696.root'
-       '/store/mc/RunIIFall15MiniAODv2/DYJetsToLL_M-50_TuneCUETP8M1_13TeV-madgraphMLM-pythia8/MINIAODSIM/PU25nsData2015v1_76X_mcRun2_asymptotic_v12-v1/70000/02A85EE9-70BA-E511-A0A2-0CC47A4D7678.root'
+       #'/store/data/Run2016G/DoubleMuon/MINIAOD/23Sep2016-v1/100000/00993A51-DF90-E611-A4EE-7845C4FC3650.root'
+       '/store/data/Run2016G/DoubleMuon/MINIAOD/23Sep2016-v1/100000/084F88CC-548F-E611-BEED-549F35AD8B7B.root'
+       #'/store/mc/RunIIFall15MiniAODv2/DYJetsToLL_M-50_TuneCUETP8M1_13TeV-madgraphMLM-pythia8/MINIAODSIM/PU25nsData2015v1_76X_mcRun2_asymptotic_v12-v1/70000/02A85EE9-70BA-E511-A0A2-0CC47A4D7678.root'
        #'file:00039A2E-D7A7-E511-98EE-3417EBE64696.root'
     )
 )
@@ -111,32 +114,32 @@ JERdataMC = 'MC'
 if not options.runOnMC:
    JERdataMC = 'DATA'
 
-process.jer = cms.ESSource("PoolDBESSource",
-      CondDBSetup,
-      toGet = cms.VPSet(
-         # Pt Resolution
-         cms.PSet(
-            record = cms.string('JetResolutionRcd'),
-            tag    = cms.string('JR_Fall15_25nsV2_'+JERdataMC+'_PtResolution_AK4PFchs'),
-            label  = cms.untracked.string('AK4PFchs_pt')
-            ),
-         # Phi Resolution
-         cms.PSet(
-            record = cms.string('JetResolutionRcd'),
-            tag    = cms.string('JR_Fall15_25nsV2_'+JERdataMC+'_PhiResolution_AK4PFchs'),
-            label  = cms.untracked.string('AK4PFchs_phi')
-            ),
-         # Scale factors
-         cms.PSet(
-            record = cms.string('JetResolutionScaleFactorRcd'),
-            tag    = cms.string('JR_Fall15_25nsV2_'+JERdataMC+'_SF_AK4PFchs'),
-            label  = cms.untracked.string('AK4PFchs')
-            ),
-         ),
-      connect = cms.string('sqlite:Fall15_25nsV2_'+JERdataMC+'.db')
-      )
-
-process.es_prefer_jer = cms.ESPrefer('PoolDBESSource', 'jer')
+#process.jer = cms.ESSource("PoolDBESSource",
+#      CondDBSetup,
+#      toGet = cms.VPSet(
+#         # Pt Resolution
+#         cms.PSet(
+#            record = cms.string('JetResolutionRcd'),
+#            tag    = cms.string('JR_Fall15_25nsV2_'+JERdataMC+'_PtResolution_AK4PFchs'),
+#            label  = cms.untracked.string('AK4PFchs_pt')
+#            ),
+#         # Phi Resolution
+#         cms.PSet(
+#            record = cms.string('JetResolutionRcd'),
+#            tag    = cms.string('JR_Fall15_25nsV2_'+JERdataMC+'_PhiResolution_AK4PFchs'),
+#            label  = cms.untracked.string('AK4PFchs_phi')
+#            ),
+#         # Scale factors
+#         cms.PSet(
+#            record = cms.string('JetResolutionScaleFactorRcd'),
+#            tag    = cms.string('JR_Fall15_25nsV2_'+JERdataMC+'_SF_AK4PFchs'),
+#            label  = cms.untracked.string('AK4PFchs')
+#            ),
+#         ),
+#      connect = cms.string('sqlite:Fall15_25nsV2_'+JERdataMC+'.db')
+#      )
+#
+#process.es_prefer_jer = cms.ESPrefer('PoolDBESSource', 'jer')
 
 # trigger filter                
 trigger_paths = ['HLT_Mu17_TrkIsoVVL_Mu8_TrkIsoVVL_DZ_v', 'HLT_Mu17_TrkIsoVVL_TkMu8_TrkIsoVVL_DZ_v']
@@ -148,60 +151,85 @@ process.triggerSelection = hltHighLevel.clone(
       throw=False
       )
 
-#
-## MET filters
-#
-process.HBHENoiseFilter = hltHighLevel.clone(
-      TriggerResultsTag = "TriggerResults::"+options.mfTag,
-      HLTPaths = cms.vstring('Flag_HBHENoiseFilter'),
-      throw=False
-      )
-process.HBHENoiseIsoFilter = hltHighLevel.clone(
-      TriggerResultsTag = "TriggerResults::"+options.mfTag,
-      HLTPaths = cms.vstring('Flag_HBHENoiseIsoFilter'),
-      throw=False
-      )
-process.CSCTightHalo2015Filter = hltHighLevel.clone(
-      TriggerResultsTag = "TriggerResults::"+options.mfTag,
-      HLTPaths = cms.vstring('Flag_CSCTightHalo2015Filter'),
-      throw=False
-      )
-process.EcalDeadCellTriggerPrimitiveFilter = hltHighLevel.clone(
-      TriggerResultsTag = "TriggerResults::"+options.mfTag,
-      HLTPaths = cms.vstring('Flag_EcalDeadCellTriggerPrimitiveFilter'),
-      throw=False
-      )
-process.goodVertices = hltHighLevel.clone(
-      TriggerResultsTag = "TriggerResults::"+options.mfTag,
-      HLTPaths = cms.vstring('Flag_goodVertices'),
-      throw=False
-      )
-process.eeBadScFilter = hltHighLevel.clone(
-      TriggerResultsTag = "TriggerResults::"+options.mfTag,
-      HLTPaths = cms.vstring('Flag_eeBadScFilter'),
-      throw=False
-      )
-process.chargedHadronTrackResolutionFilter = hltHighLevel.clone(
-      TriggerResultsTag = "TriggerResults::"+options.mfTag,
-      HLTPaths = cms.vstring('Flag_chargedHadronTrackResolutionFilter'),
-      throw=False
-      )
-process.muonBadTrackFilter = hltHighLevel.clone(
-      TriggerResultsTag = "TriggerResults::"+options.mfTag,
-      HLTPaths = cms.vstring('Flag_muonBadTrackFilter'),
-      throw=False
-      )
+#process.Flag_trackingFailureFilter = cms.Path(process.goodVertices+process.trackingFailureFilter)
+#process.Flag_goodVertices = cms.Path(process.primaryVertexFilter)
+#process.Flag_CSCTightHaloFilter = cms.Path(process.CSCTightHaloFilter)
+#process.Flag_trkPOGFilters = cms.Path(process.trkPOGFilters)
+#process.Flag_trkPOG_logErrorTooManyClusters = cms.Path(~process.logErrorTooManyClusters)
+#process.Flag_EcalDeadCellTriggerPrimitiveFilter = cms.Path(process.EcalDeadCellTriggerPrimitiveFilter)
+#process.Flag_ecalLaserCorrFilter = cms.Path(process.ecalLaserCorrFilter)
+#process.Flag_globalSuperTightHalo2016Filter = cms.Path(process.globalSuperTightHalo2016Filter)
+#process.Flag_eeBadScFilter = cms.Path(process.eeBadScFilter)
+#process.Flag_METFilters = cms.Path(process.metFilters)
+#process.Flag_chargedHadronTrackResolutionFilter = cms.Path(process.chargedHadronTrackResolutionFilter)
+#process.Flag_globalTightHalo2016Filter = cms.Path(process.globalTightHalo2016Filter)
+#process.Flag_CSCTightHaloTrkMuUnvetoFilter = cms.Path(process.CSCTightHaloTrkMuUnvetoFilter)
+#process.Flag_HBHENoiseIsoFilter = cms.Path(process.HBHENoiseFilterResultProducer+process.HBHENoiseIsoFilter)
+#process.Flag_hcalLaserEventFilter = cms.Path(process.hcalLaserEventFilter)
+#process.Flag_HBHENoiseFilter = cms.Path(process.HBHENoiseFilterResultProducer+process.HBHENoiseFilter)
+#process.Flag_trkPOG_toomanystripclus53X = cms.Path(~process.toomanystripclus53X)
+#process.Flag_EcalDeadCellBoundaryEnergyFilter = cms.Path(process.EcalDeadCellBoundaryEnergyFilter)
+#process.Flag_trkPOG_manystripclus53X = cms.Path(~process.manystripclus53X)
+#process.Flag_HcalStripHaloFilter = cms.Path(process.HcalStripHaloFilter)
+#process.Flag_muonBadTrackFilter = cms.Path(process.muonBadTrackFilter)
+#process.Flag_CSCTightHalo2015Filter = cms.Path(process.CSCTightHalo2015Filter)
+
+
+
+##
+### MET filters
+##
+#process.HBHENoiseFilter = hltHighLevel.clone(
+#      TriggerResultsTag = "TriggerResults::"+options.mfTag,
+#      HLTPaths = cms.vstring('Flag_HBHENoiseFilter'),
+#      throw=False
+#      )
+#process.HBHENoiseIsoFilter = hltHighLevel.clone(
+#      TriggerResultsTag = "TriggerResults::"+options.mfTag,
+#      HLTPaths = cms.vstring('Flag_HBHENoiseIsoFilter'),
+#      throw=False
+#      )
+#process.CSCTightHalo2015Filter = hltHighLevel.clone(
+#      TriggerResultsTag = "TriggerResults::"+options.mfTag,
+#      HLTPaths = cms.vstring('Flag_CSCTightHalo2015Filter'),
+#      throw=False
+#      )
+#process.EcalDeadCellTriggerPrimitiveFilter = hltHighLevel.clone(
+#      TriggerResultsTag = "TriggerResults::"+options.mfTag,
+#      HLTPaths = cms.vstring('Flag_EcalDeadCellTriggerPrimitiveFilter'),
+#      throw=False
+#      )
+#process.goodVertices = hltHighLevel.clone(
+#      TriggerResultsTag = "TriggerResults::"+options.mfTag,
+#      HLTPaths = cms.vstring('Flag_goodVertices'),
+#      throw=False
+#      )
+#process.eeBadScFilter = hltHighLevel.clone(
+#      TriggerResultsTag = "TriggerResults::"+options.mfTag,
+#      HLTPaths = cms.vstring('Flag_eeBadScFilter'),
+#      throw=False
+#      )
+#process.chargedHadronTrackResolutionFilter = hltHighLevel.clone(
+#      TriggerResultsTag = "TriggerResults::"+options.mfTag,
+#      HLTPaths = cms.vstring('Flag_chargedHadronTrackResolutionFilter'),
+#      throw=False
+#      )
+#process.muonBadTrackFilter = hltHighLevel.clone(
+#      TriggerResultsTag = "TriggerResults::"+options.mfTag,
+#      HLTPaths = cms.vstring('Flag_muonBadTrackFilter'),
+#      throw=False
+#      )
 
 process.p = cms.Path(
       process.triggerSelection *
-      process.HBHENoiseFilter *
-      process.HBHENoiseIsoFilter *
-      process.CSCTightHalo2015Filter *
-      process.EcalDeadCellTriggerPrimitiveFilter *
-      process.goodVertices *
-      process.eeBadScFilter *
-      process.chargedHadronTrackResolutionFilter *
-      process.muonBadTrackFilter *
+#      process.HBHENoiseFilter *
+#      process.HBHENoiseIsoFilter *
+#      process.CSCTightHalo2015Filter *
+#      process.EcalDeadCellTriggerPrimitiveFilter *
+#      process.goodVertices *
+#      process.eeBadScFilter *
+#      process.chargedHadronTrackResolutionFilter *
+#      process.muonBadTrackFilter *
       process.test
       )
 
@@ -215,6 +243,6 @@ process.p = cms.Path(
 #from Configuration.EventContent.EventContent_cff import MINIAODSIMEventContent
 #process.out.outputCommands = MINIAODSIMEventContent.outputCommands
 #process.out.outputCommands.append('keep *_selectedUpdatedPatJets*_*_*')
-#
+
 #process.outpath = cms.EndPath( process.out )
 

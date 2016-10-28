@@ -58,12 +58,14 @@ process.MessageLogger.cerr.FwkReport.reportEvery = 1000
 # print statistics
 process.options = cms.untracked.PSet(wantSummary = cms.untracked.bool(True))
 process.options.allowUnscheduled = cms.untracked.bool(True)
+#process.options = cms.untracked.PSet(SkipEvent = cms.untracked.vstring('ProductNotFound'))
+
 
 process.source = cms.Source("PoolSource",
     fileNames = cms.untracked.vstring(
        #'/store/data/Run2015D/DoubleMuon/MINIAOD/16Dec2015-v1/10000/00039A2E-D7A7-E511-98EE-3417EBE64696.root'
-       #'/store/data/Run2016G/DoubleMuon/MINIAOD/23Sep2016-v1/100000/00993A51-DF90-E611-A4EE-7845C4FC3650.root'
-       '/store/data/Run2016G/DoubleMuon/MINIAOD/23Sep2016-v1/100000/084F88CC-548F-E611-BEED-549F35AD8B7B.root'
+       '/store/data/Run2016G/DoubleMuon/MINIAOD/23Sep2016-v1/100000/00993A51-DF90-E611-A4EE-7845C4FC3650.root'
+       #'/store/data/Run2016G/DoubleMuon/MINIAOD/23Sep2016-v1/100000/084F88CC-548F-E611-BEED-549F35AD8B7B.root'
        #'/store/mc/RunIIFall15MiniAODv2/DYJetsToLL_M-50_TuneCUETP8M1_13TeV-madgraphMLM-pythia8/MINIAODSIM/PU25nsData2015v1_76X_mcRun2_asymptotic_v12-v1/70000/02A85EE9-70BA-E511-A0A2-0CC47A4D7678.root'
        #'file:00039A2E-D7A7-E511-98EE-3417EBE64696.root'
     )
@@ -173,13 +175,15 @@ process.p = cms.Path(process.globalSuperTightHalo2016Filter)
 
 ##___________________________HCAL_Noise_Filter________________________________||
 process.load('CommonTools.RecoAlgos.HBHENoiseFilterResultProducer_cfi')
+process.load('CommonTools.RecoAlgos.HBHENoiseFilter_cfi')
 process.HBHENoiseFilterResultProducer.minZeros = cms.int32(99999)
 process.HBHENoiseFilterResultProducer.IgnoreTS4TS5ifJetInLowBVRegion=cms.bool(False)
 
+process.p = cms.Path(process.HBHENoiseFilterResultProducer * process.HBHENoiseFilter)
+process.p = cms.Path(process.HBHENoiseFilterResultProducer * process.HBHENoiseIsoFilter)
+
 #process.load('Configuration.StandardSequences.Reconstruction_Data_cff')
 process.load('RecoMET.METFilters.HcalStripHaloFilter_cfi')
-
-process.p = cms.Path(process.HBHENoiseFilterResultProducer)
 #process.p = cms.Path(process.HcalStripHaloFilter)
 
 
@@ -234,18 +238,18 @@ process.p = cms.Path(process.EcalDeadCellBoundaryEnergyFilter)
 
 process.p = cms.Path(
       process.triggerSelection *
-#      process.HBHENoiseFilter *
-#      process.HBHENoiseIsoFilter *
-      process.CSCTightHaloFilter *
-      process.CSCTightHalo2015Filter *
-      process.CSCTightHaloTrkMuUnvetoFilter *
+      process.HBHENoiseFilter *
+      process.HBHENoiseIsoFilter *
+#      process.CSCTightHaloFilter *
+#      process.CSCTightHalo2015Filter *
+#      process.CSCTightHaloTrkMuUnvetoFilter *
       process.globalTightHalo2016Filter *
-      process.globalSuperTightHalo2016Filter *
+#      process.globalSuperTightHalo2016Filter *
 #      process.goodVertices *
 #      process.trackingFailureFilter *
 #      process.primaryVertexFilter *
 #      process.EcalDeadCellBoundaryEnergyFilter *
-      process.HBHENoiseFilterResultProducer *
+#      process.HBHENoiseFilterResultProducer *
 #      process.HcalStripHaloFilter *
       process.EcalDeadCellTriggerPrimitiveFilter *
 #      process.eeBadScFilter *

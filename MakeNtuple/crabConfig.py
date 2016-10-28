@@ -5,7 +5,7 @@ config = Configuration()
 
 config.section_("General")
 config.General.transferLogs = True
-config.General.requestName = 'MetSig_v2'
+config.General.requestName = 'MetSig_Data_3'
 config.General.workArea = config.General.requestName
 
 config.section_("JobType")
@@ -24,8 +24,8 @@ config.Data.ignoreLocality = False
 
 config.Data.outLFNDirBase = '/store/user/%s/' % (getUsernameFromSiteDB())
 config.Data.publication = False
-config.Data.unitsPerJob = 2
-config.Data.totalUnits = 8
+config.Data.unitsPerJob = 20
+config.Data.totalUnits = 80
 
 config.section_("Site")
 #config.Site.blacklist = ['T2_US_Purdue', 'T2_US_Nebraska', 'T2_US_MIT', 'T2_US_Caltech']

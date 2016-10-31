@@ -1,6 +1,8 @@
 import FWCore.ParameterSet.Config as cms
 from FWCore.ParameterSet.VarParsing import VarParsing
 import sys
+from os import environ
+import os
 
 options = VarParsing ('analysis')
 
@@ -9,6 +11,7 @@ options.setDefault( 'outputFile',
       )
 
 options.register( 'globalTag',
+      #'80X_dataRun2_Prompt_v11',
       '80X_dataRun2_Candidate_2016_09_02_10_26_48',
       #'74X_dataRun2_Prompt_v1',
       #'MCRUN2_74_V9',
@@ -18,15 +21,16 @@ options.register( 'globalTag',
       "CMS Global Tag"
       )
 
+#MC switch
 options.register( 'runOnMC',
-      False,
+      True,
       VarParsing.multiplicity.singleton,
       VarParsing.varType.bool,
       "mc or data"
       )
 
 options.register( 'mfTag',
-      'PAT',
+      'RECO',
       VarParsing.multiplicity.singleton,
       VarParsing.varType.string,
       "for MET filters"
@@ -55,21 +59,24 @@ process.GlobalTag.globaltag = ( options.globalTag )
 process.maxEvents = cms.untracked.PSet( input = cms.untracked.int32(5000) )
 process.MessageLogger.cerr.FwkReport.reportEvery = 1000
 
-# print statistics
-process.options = cms.untracked.PSet(wantSummary = cms.untracked.bool(True))
-process.options.allowUnscheduled = cms.untracked.bool(True)
-#process.options = cms.untracked.PSet(SkipEvent = cms.untracked.vstring('ProductNotFound'))
-
-
 process.source = cms.Source("PoolSource",
     fileNames = cms.untracked.vstring(
        #'/store/data/Run2015D/DoubleMuon/MINIAOD/16Dec2015-v1/10000/00039A2E-D7A7-E511-98EE-3417EBE64696.root'
-       '/store/data/Run2016G/DoubleMuon/MINIAOD/23Sep2016-v1/100000/00993A51-DF90-E611-A4EE-7845C4FC3650.root'
+       #'/store/data/Run2016G/DoubleMuon/MINIAOD/23Sep2016-v1/100000/00993A51-DF90-E611-A4EE-7845C4FC3650.root'
        #'/store/data/Run2016G/DoubleMuon/MINIAOD/23Sep2016-v1/100000/084F88CC-548F-E611-BEED-549F35AD8B7B.root'
+       '/store/mc/RunIISpring16MiniAODv2/DYJetsToLL_M-50_TuneCUETP8M1_13TeV-madgraphMLM-pythia8/MINIAODSIM/PUSpring16_80X_mcRun2_asymptotic_2016_miniAODv2_v0_ext1-v1/00000/0251DBB7-201B-E611-8653-0CC47A4F1C2E.root'
        #'/store/mc/RunIIFall15MiniAODv2/DYJetsToLL_M-50_TuneCUETP8M1_13TeV-madgraphMLM-pythia8/MINIAODSIM/PU25nsData2015v1_76X_mcRun2_asymptotic_v12-v1/70000/02A85EE9-70BA-E511-A0A2-0CC47A4D7678.root'
        #'file:00039A2E-D7A7-E511-98EE-3417EBE64696.root'
     )
 )
+
+# print statistics
+process.options = cms.untracked.PSet(
+    allowUnscheduled = cms.untracked.bool(True),
+    wantSummary = cms.untracked.bool(True),
+    SkipEvent = cms.untracked.vstring('ProductNotFound')
+)
+
 
 # update JECs
 from PhysicsTools.PatAlgos.tools.jetTools import updateJetCollection
@@ -111,39 +118,39 @@ process.test = cms.EDAnalyzer('MakeNtuple',
 )
 
 process.load('Configuration.StandardSequences.Services_cff')
-#process.load("JetMETCorrections.Modules.JetResolutionESProducer_cfi")
+process.load("JetMETCorrections.Modules.JetResolutionESProducer_cfi")
 from CondCore.DBCommon.CondDBSetup_cfi import *
 
 JERdataMC = 'MC'
 if not options.runOnMC:
    JERdataMC = 'DATA'
 
-#process.jer = cms.ESSource("PoolDBESSource",
-#      CondDBSetup,
-#      toGet = cms.VPSet(
-#         # Pt Resolution
-#         cms.PSet(
-#            record = cms.string('JetResolutionRcd'),
-#            tag    = cms.string('JR_Fall15_25nsV2_'+JERdataMC+'_PtResolution_AK4PFchs'),
-#            label  = cms.untracked.string('AK4PFchs_pt')
-#            ),
-#         # Phi Resolution
-#         cms.PSet(
-#            record = cms.string('JetResolutionRcd'),
-#            tag    = cms.string('JR_Fall15_25nsV2_'+JERdataMC+'_PhiResolution_AK4PFchs'),
-#            label  = cms.untracked.string('AK4PFchs_phi')
-#            ),
-#         # Scale factors
-#         cms.PSet(
-#            record = cms.string('JetResolutionScaleFactorRcd'),
-#            tag    = cms.string('JR_Fall15_25nsV2_'+JERdataMC+'_SF_AK4PFchs'),
-#            label  = cms.untracked.string('AK4PFchs')
-#            ),
-#         ),
-#      connect = cms.string('sqlite:Fall15_25nsV2_'+JERdataMC+'.db')
-#      )
-#
-#process.es_prefer_jer = cms.ESPrefer('PoolDBESSource', 'jer')
+process.jer = cms.ESSource("PoolDBESSource",
+      CondDBSetup,
+      toGet = cms.VPSet(
+         # Pt Resolution
+         cms.PSet(
+            record = cms.string('JetResolutionRcd'),
+            tag    = cms.string('JR_Spring16_25nsV6_'+JERdataMC+'_PtResolution_AK4PFchs'),
+            label  = cms.untracked.string('AK4PFchs_pt')
+            ),
+         # Phi Resolution
+         cms.PSet(
+            record = cms.string('JetResolutionRcd'),
+            tag    = cms.string('JR_Spring16_25nsV6_'+JERdataMC+'_PhiResolution_AK4PFchs'),
+            label  = cms.untracked.string('AK4PFchs_phi')
+            ),
+         # Scale factors
+         cms.PSet(
+            record = cms.string('JetResolutionScaleFactorRcd'),
+            tag    = cms.string('JR_Spring16_25nsV6_'+JERdataMC+'_SF_AK4PFchs'),
+            label  = cms.untracked.string('AK4PFchs')
+            ),
+         ),
+      connect = cms.string('sqlite:Spring16_25nsV6_'+JERdataMC+'.db')
+      )
+
+process.es_prefer_jer = cms.ESPrefer('PoolDBESSource', 'jer')
 
 # trigger filter                
 trigger_paths = ['HLT_Mu17_TrkIsoVVL_Mu8_TrkIsoVVL_DZ_v', 'HLT_Mu17_TrkIsoVVL_TkMu8_TrkIsoVVL_DZ_v']
@@ -155,106 +162,62 @@ process.triggerSelection = hltHighLevel.clone(
       throw=False
       )
 
-
-##___________________________CSC_Halo_Filter__________________________________||
-process.load('RecoMET.METFilters.CSCTightHaloFilter_cfi')
-process.load('RecoMET.METFilters.CSCTightHalo2015Filter_cfi')
-process.load('RecoMET.METFilters.CSCTightHaloTrkMuUnvetoFilter_cfi')
-
-process.p = cms.Path(process.CSCTightHaloFilter)
-process.p = cms.Path(process.CSCTightHalo2015Filter)
-process.p = cms.Path(process.CSCTightHaloTrkMuUnvetoFilter)
-
-##___________________________Global_Halo_Filter__________________________________||
-process.load('RecoMET.METFilters.globalTightHalo2016Filter_cfi')
-process.load('RecoMET.METFilters.globalSuperTightHalo2016Filter_cfi')
-
-process.p = cms.Path(process.globalTightHalo2016Filter)
-process.p = cms.Path(process.globalSuperTightHalo2016Filter)
-
-
-##___________________________HCAL_Noise_Filter________________________________||
-process.load('CommonTools.RecoAlgos.HBHENoiseFilterResultProducer_cfi')
-process.load('CommonTools.RecoAlgos.HBHENoiseFilter_cfi')
-process.HBHENoiseFilterResultProducer.minZeros = cms.int32(99999)
-process.HBHENoiseFilterResultProducer.IgnoreTS4TS5ifJetInLowBVRegion=cms.bool(False)
-
-process.p = cms.Path(process.HBHENoiseFilterResultProducer * process.HBHENoiseFilter)
-process.p = cms.Path(process.HBHENoiseFilterResultProducer * process.HBHENoiseIsoFilter)
-
-#process.load('Configuration.StandardSequences.Reconstruction_Data_cff')
-process.load('RecoMET.METFilters.HcalStripHaloFilter_cfi')
-#process.p = cms.Path(process.HcalStripHaloFilter)
-
-
-
-process.goodVertices = cms.EDFilter(
-  "VertexSelector",
-  filter = cms.bool(False),
-  src = cms.InputTag("offlinePrimaryVertices"),
-  cut = cms.string("!isFake && ndof > 4 && abs(z) <= 24 && position.rho < 2")
-)
-process.p = cms.Path(process.goodVertices)
-
-process.load('RecoMET.METFilters.trackingFailureFilter_cfi')
-process.p = cms.Path(process.trackingFailureFilter)
-
-process.load('RecoMET.METFilters.EcalDeadCellTriggerPrimitiveFilter_cfi')
-process.p = cms.Path(process.EcalDeadCellTriggerPrimitiveFilter)
-
-process.load('RecoMET.METFilters.eeBadScFilter_cfi')
-process.p = cms.Path(process.eeBadScFilter)
-
-#process.load('RecoMET.METFilters.BadChargedCandidateFilter_cfi')
-#process.p = cms.Path(process.BadChargedCandidateFilter)
-#process.BadChargedCandidateFilter.taggingMode = cms.bool(True)
-
-#process.load('RecoMET.METFilters.BadPFMuonFilter_cfi')
-#process.BadPFMuonFilter.taggingMode = cms.bool(True)
-##process.BadPFMuonFilter.debug = cms.bool(True)
-
-#process.load('RecoMET.METFilters.BadChargedCandidateSummer16Filter_cfi')
-#process.BadChargedCandidateSummer16Filter.taggingMode = cms.bool(True)
 #
-#process.load('RecoMET.METFilters.BadPFMuonSummer16Filter_cfi')
-#process.BadPFMuonSummer16Filter.taggingMode = cms.bool(True)
-##process.BadPFMuonFilter.debug = cms.bool(True)
+## MET filters
+#
+process.HBHENoiseFilter = hltHighLevel.clone(
+      TriggerResultsTag = "TriggerResults::"+options.mfTag,
+      HLTPaths = cms.vstring('Flag_HBHENoiseFilter'),
+      throw=False
+      )
+process.HBHENoiseIsoFilter = hltHighLevel.clone(
+      TriggerResultsTag = "TriggerResults::"+options.mfTag,
+      HLTPaths = cms.vstring('Flag_HBHENoiseIsoFilter'),
+      throw=False
+      )
+process.globalTightHalo2016Filter = hltHighLevel.clone(
+      TriggerResultsTag = "TriggerResults::"+options.mfTag,
+      HLTPaths = cms.vstring('Flag_globalTightHalo2016Filter'),
+      throw=False
+      )
+process.EcalDeadCellTriggerPrimitiveFilter = hltHighLevel.clone(
+      TriggerResultsTag = "TriggerResults::"+options.mfTag,
+      HLTPaths = cms.vstring('Flag_EcalDeadCellTriggerPrimitiveFilter'),
+      throw=False
+      )
+process.goodVertices = hltHighLevel.clone(
+      TriggerResultsTag = "TriggerResults::"+options.mfTag,
+      HLTPaths = cms.vstring('Flag_goodVertices'),
+      throw=False
+      )
+process.eeBadScFilter = hltHighLevel.clone(
+      TriggerResultsTag = "TriggerResults::"+options.mfTag,
+      HLTPaths = cms.vstring('Flag_eeBadScFilter'),
+      throw=False
+      )
 
-#process.primaryVertexFilter = cms.EDFilter("GoodVertexFilter",
-#                                           vertexCollection = cms.InputTag('offlinePrimaryVertices'),
-#                                           minimumNDOF = cms.uint32(4) ,
-#                                           maxAbsZ = cms.double(24),
-#                                           maxd0 = cms.double(2)
-#                                           )
-#process.p = cms.Path(process.primaryVertexFilter)
 
-process.load('RecoMET.METFilters.EcalDeadCellBoundaryEnergyFilter_cfi')
-##process.EcalDeadCellBoundaryEnergyFilter.taggingMode = cms.bool(True)
-process.EcalDeadCellBoundaryEnergyFilter.limitDeadCellToChannelStatusEB=cms.vint32(12, 13, 14)
-process.EcalDeadCellBoundaryEnergyFilter.limitDeadCellToChannelStatusEE=cms.vint32(12, 13, 14)
-process.p = cms.Path(process.EcalDeadCellBoundaryEnergyFilter)
+process.load('RecoMET.METFilters.BadPFMuonFilter_cfi')
+process.BadPFMuonFilter.muons = cms.InputTag("slimmedMuons")
+process.BadPFMuonFilter.PFCandidates = cms.InputTag("packedPFCandidates")
+
+process.load('RecoMET.METFilters.BadChargedCandidateFilter_cfi')
+process.BadChargedCandidateFilter.muons = cms.InputTag("slimmedMuons")
+process.BadChargedCandidateFilter.PFCandidates = cms.InputTag("packedPFCandidates")
+
 
 
 
 process.p = cms.Path(
-      process.triggerSelection *
-      process.HBHENoiseFilter *
-      process.HBHENoiseIsoFilter *
-#      process.CSCTightHaloFilter *
-#      process.CSCTightHalo2015Filter *
-#      process.CSCTightHaloTrkMuUnvetoFilter *
-      process.globalTightHalo2016Filter *
-#      process.globalSuperTightHalo2016Filter *
-#      process.goodVertices *
-#      process.trackingFailureFilter *
-#      process.primaryVertexFilter *
-#      process.EcalDeadCellBoundaryEnergyFilter *
-#      process.HBHENoiseFilterResultProducer *
-#      process.HcalStripHaloFilter *
-      process.EcalDeadCellTriggerPrimitiveFilter *
-#      process.eeBadScFilter *
-#      process.chargedHadronTrackResolutionFilter *
-#      process.muonBadTrackFilter *
+      #process.triggerSelection *
+      #process.HBHENoiseFilter *
+      #process.HBHENoiseIsoFilter *
+      #process.globalTightHalo2016Filter *
+      #process.EcalDeadCellTriggerPrimitiveFilter *
+      #process.goodVertices *
+      #process.eeBadScFilter *
+      process.BadPFMuonFilter *
+      process.BadChargedCandidateFilter *
       process.test
       )
 

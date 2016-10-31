@@ -5,7 +5,7 @@ config = Configuration()
 
 config.section_("General")
 config.General.transferLogs = True
-config.General.requestName = 'MetSig_Data_2016G_triggerFilter'
+config.General.requestName = 'MetSig_DY'
 config.General.workArea = config.General.requestName
 
 config.section_("JobType")
@@ -16,16 +16,16 @@ config.JobType.outputFiles = ['ntuple.root']
 config.JobType.inputFiles = ['Spring16_25nsV6_DATA.db','Spring16_25nsV6_MC.db']
 
 config.section_("Data")
-config.Data.inputDataset = '/DoubleMuon/Run2016G-23Sep2016-v1/MINIAOD'
+config.Data.inputDataset = '/DYJetsToLL_M-50_TuneCUETP8M1_13TeV-madgraphMLM-pythia8/RunIISpring16MiniAODv2-PUSpring16_80X_mcRun2_asymptotic_2016_miniAODv2_v0_ext1-v1/MINIAODSIM'
 config.Data.inputDBS = 'global'
-config.Data.splitting = 'LumiBased'
-config.Data.lumiMask = 'json/Cert_271036-280385_13TeV_PromptReco_Collisions16_JSON.txt'
-config.Data.runRange = '278820-280385'
+config.Data.splitting = 'FileBased'
+#config.Data.lumiMask = 'json/Cert_271036-280385_13TeV_PromptReco_Collisions16_JSON.txt'
+#config.Data.runRange = '278820-280385'
 config.Data.ignoreLocality = False
 
 config.Data.outLFNDirBase = '/store/user/%s/' % (getUsernameFromSiteDB())
 config.Data.publication = False
-config.Data.unitsPerJob = 20
+config.Data.unitsPerJob = 10
 #config.Data.totalUnits = 8
 
 config.section_("Site")

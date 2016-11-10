@@ -134,7 +134,7 @@ class MakeNtuple : public edm::EDAnalyzer {
       std::vector<double> jet_corrL1, jet_corrL123;
       std::vector<bool> jet_passid;
       std::vector<double> jet_sf;
-      double met_pt, met_energy, met_phi, met_eta, met_sumpt;
+      double met_pt, met_energy, met_phi, met_eta, met_sumpt, met_sig;
       int nvertices;
       double weight_pu;
       double mcweight, mcweightSum;
@@ -456,6 +456,7 @@ MakeNtuple::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
    */
 
    met_pt = met.pt();
+   met_sig = met.metSignificance();
    met_energy = met.energy();
    met_phi = met.phi();
    met_eta = met.eta();
@@ -743,6 +744,7 @@ MakeNtuple::beginJob()
    //results_tree -> Branch("jet_corrL123", &jet_corrL123);
 
    results_tree -> Branch("met_pt", &met_pt);
+   results_tree -> Branch("met_sig", &met_sig);
    results_tree -> Branch("met_energy", &met_energy);
    results_tree -> Branch("met_phi", &met_phi);
    results_tree -> Branch("met_eta", &met_eta);

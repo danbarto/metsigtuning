@@ -11,8 +11,10 @@ options.setDefault( 'outputFile',
       )
 
 options.register( 'globalTag',
+      '80X_dataRun2_Prompt_ICHEP16JEC_v0',
+      #'80X_mcRun2_asymptotic_2016_miniAODv2_v1'
       #'80X_mcRun2_asymptotic_v17',
-      '80X_dataRun2_v18',
+      #'80X_dataRun2_v18',
       #'80X_dataRun2_Prompt_v11',
       #'80X_dataRun2_Candidate_2016_09_02_10_26_48',
       #'74X_dataRun2_Prompt_v1',
@@ -160,7 +162,8 @@ process.jer = cms.ESSource("PoolDBESSource",
 process.es_prefer_jer = cms.ESPrefer('PoolDBESSource', 'jer')
 
 # trigger filter                
-trigger_paths = ['HLT_Mu17_TrkIsoVVL_Mu8_TrkIsoVVL_DZ_v', 'HLT_Mu17_TrkIsoVVL_TkMu8_TrkIsoVVL_DZ_v']
+#trigger_paths = ['HLT_Mu17_TrkIsoVVL_Mu8_TrkIsoVVL_DZ_v', 'HLT_Mu17_TrkIsoVVL_TkMu8_TrkIsoVVL_DZ_v']
+trigger_paths = ['HLT_Mu17_TrkIsoVVL_Mu8_TrkIsoVVL_v', 'HLT_Mu17_TrkIsoVVL_TkMu8_TrkIsoVVL_v', 'HLT_IsoMu24_v', 'HLT_IsoTkMu24_v']
 trigger_pattern = [path+"*" for path in trigger_paths]
 from HLTrigger.HLTfilters.hltHighLevel_cfi import *
 process.triggerSelection = hltHighLevel.clone(

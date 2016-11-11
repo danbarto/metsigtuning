@@ -129,6 +129,7 @@ class MakeNtuple : public edm::EDAnalyzer {
 
       std::vector<double> lep_pt, lep_energy, lep_phi, lep_eta;
       std::vector<double> muon_pt, muon_energy, muon_phi, muon_eta;
+      std::vector<int> muon_charge;
       std::vector<double> jet_pt, jet_energy, jet_phi, jet_eta;
       std::vector<double> jet_sigmapt, jet_sigmaphi;
       std::vector<double> jet_corrL1, jet_corrL123;
@@ -332,6 +333,7 @@ MakeNtuple::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
    lep_phi.clear();
    lep_eta.clear();
    muon_pt.clear();
+   muon_charge.clear();
    muon_energy.clear();
    muon_phi.clear();
    muon_eta.clear();
@@ -392,13 +394,14 @@ MakeNtuple::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
       double dr04neutHad = muon->pfIsolationR04().sumNeutralHadronEt;
       double dr04photons = muon->pfIsolationR04().sumPhotonEt;
 
-      bool muIso = (dr04chHad + dr04neutHad + dr04photons)/muon->pt() < 0.12;
+      bool muIso = (dr04chHad + dr04neutHad + dr04photons)/muon->pt() < 0.15;//0.12 before
 
       if( muon->pt() > 20 and fabs(muon->eta()) < 2.4 and muId and muIso ){
          muon_pt.push_back( muon->pt() );
          muon_energy.push_back( muon->energy() );
          muon_phi.push_back( muon->phi() );
          muon_eta.push_back( muon->eta() );
+         muon_charge.push_back( muon->charge() );
          nmuons++;
          charge *= muon->charge();
       }
@@ -652,6 +655,7 @@ MakeNtuple::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
 
    events_total++;
    bool pass_selection = (nmuons == 2) and (dimuon_mass > 60) and (dimuon_mass < 120);
+   //bool pass_selection = (nmuons == 2) and (dimuon_mass > 80) and (dimuon_mass < 100);
    if( pass_selection ){
       results_tree -> Fill();
       events_pass++;
@@ -724,6 +728,8 @@ MakeNtuple::beginJob()
    results_tree -> Branch("muon_energy", &muon_energy);
    results_tree -> Branch("muon_phi", &muon_phi);
    results_tree -> Branch("muon_eta", &muon_eta);
+   results_tree -> Branch("muon_charge", &muon_charge);
+   //results_tree -> Branch("muon_OS", &charge);
 
    /*
    results_tree -> Branch("lep_pt", &lep_pt);

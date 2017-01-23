@@ -11,8 +11,9 @@ options.setDefault( 'outputFile',
       )
 
 options.register( 'globalTag',
-      '80X_dataRun2_Prompt_ICHEP16JEC_v0',
-      #'80X_mcRun2_asymptotic_2016_miniAODv2_v1'
+      '80X_mcRun2_asymptotic_v20',
+      #'80X_dataRun2_Prompt_ICHEP16JEC_v0',
+      #'80X_mcRun2_asymptotic_2016_miniAODv2_v1',
       #'80X_mcRun2_asymptotic_v17',
       #'80X_dataRun2_v18',
       #'80X_dataRun2_Prompt_v11',
@@ -60,7 +61,37 @@ process.load("Configuration.StandardSequences.FrontierConditions_GlobalTag_cff")
 #process.load("Configuration.StandardSequences.MagneticField_38T_cff")
 process.GlobalTag.globaltag = ( options.globalTag )
 
-process.maxEvents = cms.untracked.PSet( input = cms.untracked.int32(5000) )
+JECdata = 'Spring16_23Sep2016AllV2_DATA'
+JECMC   = 'Spring16_23Sep2016V2_MC'
+if options.runOnMC:
+    JECdb = JECMC
+else: JECdb = JECdata
+
+
+process.load("CondCore.DBCommon.CondDBCommon_cfi")
+from CondCore.DBCommon.CondDBSetup_cfi import *
+process.jec = cms.ESSource("PoolDBESSource",
+      DBParameters = cms.PSet(
+        messageLevel = cms.untracked.int32(0)
+        ),
+      timetype = cms.string('runnumber'),
+      toGet = cms.VPSet(
+      cms.PSet(
+            record = cms.string('JetCorrectionsRecord'),
+            tag    = cms.string('JetCorrectorParametersCollection_'+JECdb+'_AK4PFchs'),
+            # tag    = cms.string('JetCorrectorParametersCollection_Fall15_25nsV2_MC_AK4PFchs'),
+            label  = cms.untracked.string('AK4PFchs')
+            ),
+      ),
+      connect = cms.string('sqlite:'+JECdb+'.db')
+      #connect = cms.string('sqlite:Fall15_V2_DATA.db')
+)
+
+## add an es_prefer statement to resolve a possible conflict from simultaneous connection to a global tag
+process.es_prefer_jec = cms.ESPrefer('PoolDBESSource', 'jec')
+
+
+process.maxEvents = cms.untracked.PSet( input = cms.untracked.int32(200) )
 process.MessageLogger.cerr.FwkReport.reportEvery = 1000
 
 process.source = cms.Source("PoolSource",
@@ -71,10 +102,13 @@ process.source = cms.Source("PoolSource",
        #'/store/mc/RunIISpring16MiniAODv2/DYJetsToLL_M-50_TuneCUETP8M1_13TeV-madgraphMLM-pythia8/MINIAODSIM/PUSpring16_80X_mcRun2_asymptotic_2016_miniAODv2_v0_ext1-v1/00000/0251DBB7-201B-E611-8653-0CC47A4F1C2E.root'
        #'/store/mc/RunIIFall15MiniAODv2/DYJetsToLL_M-50_TuneCUETP8M1_13TeV-madgraphMLM-pythia8/MINIAODSIM/PU25nsData2015v1_76X_mcRun2_asymptotic_v12-v1/70000/02A85EE9-70BA-E511-A0A2-0CC47A4D7678.root'
        #'file:00039A2E-D7A7-E511-98EE-3417EBE64696.root'
+       #'/store/relval/CMSSW_8_0_20/RelValTTbar_13/MINIAODSIM/PU25ns_80X_mcRun2_asymptotic_2016_TrancheIV_v4_Tr4GT_v4-v1/00000/A8C282AE-D37A-E611-8603-0CC47A4C8ECE.root'
        #'/store/data/Run2016G/DoubleMuon/MINIAOD/PromptReco-v1/000/278/819/00000/E40327C9-9F63-E611-80EE-FA163E3490D9.root'
        #'/store/data/Run2016G/DoubleMuon/MINIAOD/PromptReco-v1/000/278/820/00000/227B551D-AD64-E611-A12B-FA163E951746.root'
        #'/store/data/Run2016C/DoubleMuon/MINIAOD/PromptReco-v2/000/275/601/00000/4423F253-7B3A-E611-8707-02163E013706.root'
-       '/store/data/Run2016C/DoubleMuon/MINIAOD/PromptReco-v2/000/275/657/00000/3460EDF8-7F3B-E611-9318-02163E01461C.root'
+       #'/store/data/Run2016C/DoubleMuon/MINIAOD/PromptReco-v2/000/275/657/00000/3460EDF8-7F3B-E611-9318-02163E01461C.root'
+       '/store/data/Run2016G/DoubleMuon/MINIAOD/23Sep2016-v1/100000/00DD00F8-008C-E611-8CD0-00266CFFC9C4.root'
+       #'/store/mc/RunIISpring16MiniAODv1/DYJetsToLL_M-50_HT-100to200_TuneCUETP8M1_13TeV-madgraphMLM-pythia8/MINIAODSIM/PUSpring16_80X_mcRun2_asymptotic_2016_v3_ext1-v1/00000/06B334D9-4DFE-E511-B1A1-001E67A40604.root'
         
     )
 )

@@ -131,12 +131,13 @@ class MakeNtuple : public edm::EDAnalyzer {
       std::vector<double> muon_pt, muon_energy, muon_phi, muon_eta;
       std::vector<int> muon_charge;
       std::vector<double> jet_pt, jet_energy, jet_phi, jet_eta;
+      std::vector<double> cand_pt, cand_energy, cand_phi, cand_eta;
       std::vector<double> jet_sigmapt, jet_sigmaphi;
       std::vector<double> jet_corrL1, jet_corrL123;
       std::vector<bool> jet_passid;
       std::vector<double> jet_sf;
-      double met_pt, met_energy, met_phi, met_eta, met_sumpt, met_sig;
-      int nvertices;
+      double met_pt, met_energy, met_phi, met_eta, met_sumpt, met_sig, alt_sumpt;
+      int nvertices, met_sumpt_inputs;
       double weight_pu;
       double mcweight, mcweightSum;
 
@@ -342,6 +343,12 @@ MakeNtuple::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
    jet_energy.clear();
    jet_phi.clear();
    jet_eta.clear();
+
+   cand_pt.clear();
+   cand_energy.clear();
+   cand_phi.clear();
+   cand_eta.clear();
+
    jet_sigmapt.clear();
    jet_sigmaphi.clear();
    jet_sf.clear();
@@ -394,7 +401,7 @@ MakeNtuple::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
       double dr04neutHad = muon->pfIsolationR04().sumNeutralHadronEt;
       double dr04photons = muon->pfIsolationR04().sumPhotonEt;
 
-      bool muIso = (dr04chHad + dr04neutHad + dr04photons)/muon->pt() < 0.15;//0.12 before
+      bool muIso = (dr04chHad + dr04neutHad + dr04photons)/muon->pt() < 0.12;//can be changed to 0.15 before
 
       if( muon->pt() > 20 and fabs(muon->eta()) < 2.4 and muId and muIso ){
          muon_pt.push_back( muon->pt() );
@@ -573,10 +580,16 @@ MakeNtuple::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
 
    // calculate met_sumpt
    // candidates already have clean jets removed
+   met_sumpt_inputs = 0;
    met_sumpt = 0;
    for( std::vector<reco::Candidate::LorentzVector>::const_iterator cand = candidates.begin();
          cand != candidates.end(); ++cand){
       met_sumpt += cand->Pt();
+      cand_pt.push_back( cand->Pt() );
+      //cand_energy.push_back( cand->energy() );
+      cand_phi.push_back( cand->Phi() );
+      cand_eta.push_back( cand->Eta() );
+      met_sumpt_inputs++;
    }
 
    /*
@@ -648,15 +661,28 @@ MakeNtuple::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
 
          // add the (corrected) jet to the met_sumpt
          // (was subtracted previously)
+         cand_pt.push_back( jet->pt() );
+         cand_energy.push_back( jet->energy() );
+         cand_phi.push_back( jet->phi() );
+         cand_eta.push_back( jet->eta() );
          met_sumpt += jpt;
+         met_sumpt_inputs++;
 
       }
    }
-
+   alt_sumpt = 0;
+   for ( std::vector<double>::const_iterator candpt = cand_pt.begin();
+         candpt != cand_pt.end(); ++candpt ) {
+            alt_sumpt += *candpt;
+        }
+   //iterate over candidates to get sum_pt
+   std::cout << "Inputs to met_sumpt " << met_sumpt_inputs << std::endl;
+   std::cout << "met_sumpt " << met_sumpt << std::endl;
+   std::cout << "alt_sumpt " << alt_sumpt << std::endl;
    events_total++;
    bool pass_selection = (nmuons == 2) and (dimuon_mass > 60) and (dimuon_mass < 120);
    //bool pass_selection = (nmuons == 2) and (dimuon_mass > 80) and (dimuon_mass < 100);
-   if( pass_selection ){
+   if( pass_selection=1 ){
       results_tree -> Fill();
       events_pass++;
       //std::cout << cleanjets.size() << " / " << jets.size() << std::endl;
@@ -748,6 +774,8 @@ MakeNtuple::beginJob()
    results_tree -> Branch("jet_passid", &jet_passid);
    //results_tree -> Branch("jet_corrL1", &jet_corrL1);
    //results_tree -> Branch("jet_corrL123", &jet_corrL123);
+
+   results_tree -> Branch("cand_pt", &cand_pt);
 
    results_tree -> Branch("met_pt", &met_pt);
    results_tree -> Branch("met_sig", &met_sig);

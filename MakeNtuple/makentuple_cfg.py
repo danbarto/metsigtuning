@@ -28,7 +28,7 @@ options.register( 'globalTag',
 
 #MC switch
 options.register( 'runOnMC',
-      False,
+      True,
       VarParsing.multiplicity.singleton,
       VarParsing.varType.bool,
       "mc or data"
@@ -61,8 +61,8 @@ process.load("Configuration.StandardSequences.FrontierConditions_GlobalTag_cff")
 #process.load("Configuration.StandardSequences.MagneticField_38T_cff")
 process.GlobalTag.globaltag = ( options.globalTag )
 
-JECdata = 'Spring16_23Sep2016AllV2_DATA'
-JECMC   = 'Spring16_23Sep2016V2_MC'
+JECdata = 'Summer16_23Sep2016AllV4_DATA'
+JECMC   = 'Summer16_23Sep2016V4_MC'
 if options.runOnMC:
     JECdb = JECMC
 else: JECdb = JECdata
@@ -83,7 +83,7 @@ process.jec = cms.ESSource("PoolDBESSource",
             label  = cms.untracked.string('AK4PFchs')
             ),
       ),
-      connect = cms.string('sqlite:'+JECdb+'.db')
+      connect = cms.string('sqlite:data/'+JECdb+'.db')
       #connect = cms.string('sqlite:Fall15_V2_DATA.db')
 )
 
@@ -92,7 +92,7 @@ process.es_prefer_jec = cms.ESPrefer('PoolDBESSource', 'jec')
 
 
 process.maxEvents = cms.untracked.PSet( input = cms.untracked.int32(200) )
-process.MessageLogger.cerr.FwkReport.reportEvery = 1000
+process.MessageLogger.cerr.FwkReport.reportEvery = 100
 
 process.source = cms.Source("PoolSource",
     fileNames = cms.untracked.vstring(
@@ -107,7 +107,8 @@ process.source = cms.Source("PoolSource",
        #'/store/data/Run2016G/DoubleMuon/MINIAOD/PromptReco-v1/000/278/820/00000/227B551D-AD64-E611-A12B-FA163E951746.root'
        #'/store/data/Run2016C/DoubleMuon/MINIAOD/PromptReco-v2/000/275/601/00000/4423F253-7B3A-E611-8707-02163E013706.root'
        #'/store/data/Run2016C/DoubleMuon/MINIAOD/PromptReco-v2/000/275/657/00000/3460EDF8-7F3B-E611-9318-02163E01461C.root'
-       '/store/data/Run2016G/DoubleMuon/MINIAOD/23Sep2016-v1/100000/00DD00F8-008C-E611-8CD0-00266CFFC9C4.root'
+       '/store/mc/RunIISummer16MiniAODv2/WW_TuneCUETP8M1_13TeV-pythia8/MINIAODSIM/PUMoriond17_80X_mcRun2_asymptotic_2016_TrancheIV_v6-v1/60000/0449B17C-BAD7-E611-8430-0025905B85EC.root'
+       #'/store/data/Run2016G/DoubleMuon/MINIAOD/23Sep2016-v1/100000/00DD00F8-008C-E611-8CD0-00266CFFC9C4.root'
        #'/store/mc/RunIISpring16MiniAODv1/DYJetsToLL_M-50_HT-100to200_TuneCUETP8M1_13TeV-madgraphMLM-pythia8/MINIAODSIM/PUSpring16_80X_mcRun2_asymptotic_2016_v3_ext1-v1/00000/06B334D9-4DFE-E511-B1A1-001E67A40604.root'
         
     )
@@ -250,9 +251,22 @@ process.BadChargedCandidateFilter.muons = cms.InputTag("slimmedMuons")
 process.BadChargedCandidateFilter.PFCandidates = cms.InputTag("packedPFCandidates")
 
 
+if options.runOnMC:
+    process.p = cms.Path(
+      #process.triggerSelection *
+      #process.HBHENoiseFilter *
+      #process.HBHENoiseIsoFilter *
+      #process.globalTightHalo2016Filter *
+      #process.EcalDeadCellTriggerPrimitiveFilter *
+      #process.goodVertices *
+      #process.eeBadScFilter *
+      process.BadPFMuonFilter *
+      process.BadChargedCandidateFilter *
+      process.test
+      )
 
-
-process.p = cms.Path(
+else:
+    process.p = cms.Path(
       process.triggerSelection *
       process.HBHENoiseFilter *
       process.HBHENoiseIsoFilter *

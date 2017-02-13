@@ -68,7 +68,7 @@
 #include <string>
 #include <sys/stat.h>
 
-#define NUMPUBINS 50
+#define NUMPUBINS 75
 
 //
 // class declaration
@@ -93,6 +93,15 @@ class MakeNtuple : public edm::EDAnalyzer {
       edm::EDGetTokenT<edm::View<pat::Jet> > jetToken_;
       std::vector< edm::EDGetTokenT<edm::View<reco::Candidate> > > lepTokens_;
       edm::EDGetTokenT<edm::View<pat::MET> > metToken_;
+      edm::EDGetTokenT<edm::View<pat::MET> > metTokenPF_;
+      edm::EDGetTokenT<edm::View<pat::MET> > metTokenPFT1_;
+      edm::EDGetTokenT<edm::View<pat::MET> > metTokenPFT1Smear_;
+      edm::EDGetTokenT<edm::View<pat::MET> > metTokenPFT1SmearJetResUp_;
+      edm::EDGetTokenT<edm::View<pat::MET> > metTokenPFT1SmearJetResDown_;
+      edm::EDGetTokenT<edm::View<pat::MET> > metTokenPFT1JetResUp_;
+      edm::EDGetTokenT<edm::View<pat::MET> > metTokenPFT1JetResDown_;
+
+      //edm::EDGetTokenT<edm::View<pat::MET> > metTokenSmear_;
       edm::EDGetTokenT<GenEventInfoProduct> genToken_;
       edm::EDGetTokenT<LHEEventProduct> lheToken_;
       edm::EDGetTokenT< std::vector<pat::Muon> > muonToken_;
@@ -136,8 +145,18 @@ class MakeNtuple : public edm::EDAnalyzer {
       std::vector<double> jet_corrL1, jet_corrL123;
       std::vector<bool> jet_passid;
       std::vector<double> jet_sf;
+      double dimuon_mass;
       double met_pt, met_energy, met_phi, met_eta, met_sumpt, met_sig, alt_sumpt;
-      int nvertices, met_sumpt_inputs;
+      double met_PF_pt,                 met_PF_sig;
+      double met_PFT1_pt,               met_PFT1_sig;
+      double met_PFT1JetResDown_pt,     met_PFT1JetResDown_sig;
+      double met_PFT1JetResUp_pt,       met_PFT1JetResUp_sig;
+      double met_PFT1Smear_pt,          met_PFT1Smear_sig;
+      double met_PFT1SmearJetResUp_pt,  met_PFT1SmearJetResUp_sig;
+      double met_PFT1SmearJetResDown_pt,met_PFT1SmearJetResDown_sig;
+
+
+      int nvertices, met_sumpt_inputs, nmuons;
       double weight_pu;
       double mcweight, mcweightSum;
 
@@ -171,6 +190,14 @@ MakeNtuple::MakeNtuple(const edm::ParameterSet& iConfig)
       lepTokens_.push_back( consumes<edm::View<reco::Candidate> >( *it ) );
    }
    metToken_ = consumes<edm::View<pat::MET> >(iConfig.getParameter<edm::InputTag>("met"));
+   metTokenPF_ = consumes<edm::View<pat::MET> >(iConfig.getParameter<edm::InputTag>("metPF"));
+   metTokenPFT1_ = consumes<edm::View<pat::MET> >(iConfig.getParameter<edm::InputTag>("metPFT1"));
+   metTokenPFT1Smear_ = consumes<edm::View<pat::MET> >(iConfig.getParameter<edm::InputTag>("metPFT1Smear"));
+   metTokenPFT1SmearJetResUp_ = consumes<edm::View<pat::MET> >(iConfig.getParameter<edm::InputTag>("metPFT1SmearJetResUp"));
+   metTokenPFT1SmearJetResDown_ = consumes<edm::View<pat::MET> >(iConfig.getParameter<edm::InputTag>("metPFT1SmearJetResDown"));
+   metTokenPFT1JetResUp_ = consumes<edm::View<pat::MET> >(iConfig.getParameter<edm::InputTag>("metPFT1JetResUp"));
+   metTokenPFT1JetResDown_ = consumes<edm::View<pat::MET> >(iConfig.getParameter<edm::InputTag>("metPFT1JetResDown"));
+
    muonToken_ = consumes< std::vector<pat::Muon> >(iConfig.getParameter<edm::InputTag>("muons"));
    verticesToken_ = consumes< edm::View<reco::Vertex> >(iConfig.getParameter<edm::InputTag>("vertices"));
    genToken_ = consumes<GenEventInfoProduct>(iConfig.getParameter<edm::InputTag>("generator"));
@@ -189,8 +216,6 @@ MakeNtuple::MakeNtuple(const edm::ParameterSet& iConfig)
 
    jetThreshold = 15;
 
-   mcweight = 1.0;
-   mcweightSum = 1.0;
 
    OutputFileName_ = "ntuple.root";
 
@@ -211,115 +236,166 @@ MakeNtuple::~MakeNtuple()
 //
 
 const double MakeNtuple::PU2015_MCf[NUMPUBINS] = {
+   // Updated to PU for Summer16 from: SimGeneral/MixingModule/python/mix_2016_25ns_Moriond17MC_PoissonOOTPU_cfi.py 
    // pileup distribution for Spring2016 MC
    // obtained at https://twiki.cern.ch/twiki/bin/viewauth/CMS/PdmVPileUpDescription#Startup2015
    // from file SimGeneral/MixingModule/python/mix_2015_25ns_FallMC_matchData_PoissonOOTPU_cfi.py
-    0.000829312873542,
-    0.00124276120498,
-    0.00339329181587,
-    0.00408224735376,
-    0.00383036590008,
-    0.00659159288946,
-    0.00816022734493,
-    0.00943640833116,
-    0.0137777376066,
-    0.017059392038,
-    0.0213193035468,
-    0.0247343174676,
-    0.0280848773878,
-    0.0323308476564,
-    0.0370394341409,
-    0.0456917721191,
-    0.0558762890594,
-    0.0576956187107,
-    0.0625325287017,
-    0.0591603758776,
-    0.0656650815128,
-    0.0678329011676,
-    0.0625142146389,
-    0.0548068448797,
-    0.0503893295063,
-    0.040209818868,
-    0.0374446988111,
-    0.0299661572042,
-    0.0272024759921,
-    0.0219328403791,
-    0.0179586571619,
-    0.0142926728247,
-    0.00839941654725,
-    0.00522366397213,
-    0.00224457976761,
-    0.000779274977993,
-    0.000197066585944,
-    7.16031761328e-05,
-    0.0,
-    0.0,
-    0.0,
-    0.0,
-    0.0,
-    0.0,
-    0.0,
-    0.0,
-    0.0,
-    0.0,
-    0.0,
-    0.0
+    1.78653e-05,
+    2.56602e-05,
+    5.27857e-05,
+    8.88954e-05,
+    0.000109362,
+    0.000140973,
+    0.000240998,
+    0.00071209,
+    0.00130121,
+    0.00245255,
+    0.00502589,
+    0.00919534,
+    0.0146697,
+    0.0204126,
+    0.0267586,
+    0.0337697,
+    0.0401478,
+    0.0450159,
+    0.0490577,
+    0.0524855,
+    0.0548159,
+    0.0559937,
+    0.0554468,
+    0.0537687,
+    0.0512055,
+    0.0476713,
+    0.0435312,
+    0.0393107,
+    0.0349812,
+    0.0307413,
+    0.0272425,
+    0.0237115,
+    0.0208329,
+    0.0182459,
+    0.0160712,
+    0.0142498,
+    0.012804,
+    0.011571,
+    0.010547,
+    0.00959489,
+    0.00891718,
+    0.00829292,
+    0.0076195,
+    0.0069806,
+    0.0062025,
+    0.00546581,
+    0.00484127,
+    0.00407168,
+    0.00337681,
+    0.00269893,
+    0.00212473,
+    0.00160208,
+    0.00117884,
+    0.000859662,
+    0.000569085,
+    0.000365431,
+    0.000243565,
+    0.00015688,
+    9.88128e-05,
+    6.53783e-05,
+    3.73924e-05,
+    2.61382e-05,
+    2.0307e-05,
+    1.73032e-05,
+    1.435e-05,
+    1.36486e-05,
+    1.35555e-05,
+    1.37491e-05,
+    1.34255e-05,
+    1.33987e-05,
+    1.34061e-05,
+    1.34211e-05,
+    1.34177e-05,
+    1.32959e-05,
+    1.33287e-05
 };
 
 const double MakeNtuple::PU2015_Dataf[NUMPUBINS] = {
+   // obtained with pileupCalc.py -i $JSON --inputLumiJSON $PILEUP_LATEST --calcMode true --minBiasXsec 69200 --maxPileupBin 75 --numPileupBins 75 PU_2016_${LUMI}_XSecCentral.root
    // 'true' distribution for 2016 RunA-H dataset
    // obtained with pileupCalc.py (04.21.2016)
-    15340.994276230838,
-    454750.53995054896,
-    1445036.3997090787,
-    2383234.8943812754,
-    3475684.706922051,
-    4764326.989832042,
-    5851250.312062338,
-    10742434.921471925,
-    32003127.62931088,
-    76058839.3678658,
-    164792779.7138916,
-    318354254.79217154,
-    522533812.1629369,
-    749154195.3289002,
-    983161153.9001331,
-    1229340155.9809995,
-    1440446183.2835302,
-    1583017386.1287673,
-    1663536975.1534655,
-    1699110467.6327617,
-    1705559055.1237783,
-    1692767651.5680315,
-    1660566429.2763174,
-    1606272831.5044045,
-    1529091650.7796218,
-    1428639381.026598,
-    1307895574.7045105,
-    1174192190.1113076,
-    1035179152.7200407,
-    895633042.0554477,
-    758059029.4368378,
-    624949797.7349197,
-    500005114.95968574,
-    387411030.21148086,
-    290424476.1689815,
-    210552109.5161928,
-    147559154.062156,
-    99915600.52284627,
-    65329653.38477025,
-    41223682.993927285,
-    25093461.30363536,
-    14733239.058054678,
-    8345725.246015714,
-    4563731.823334545,
-    2411462.904543465,
-    1232937.3006199521,
-    611235.4451464196,
-    294900.4393850436,
-    139486.71718140785,
-    65699.39014552248
-
+    238797.04313,
+    837542.889595,
+    2308427.00478,
+    3124754.34372,
+    4476191.30543,
+    5995911.21323,
+    7000895.56315,
+    12891652.1791,
+    35261733.5341,
+    78701230.1513,
+    176945810.65,
+    360089516.856,
+    602766485.926,
+    876519381.282,
+    1174474378.51,
+    1489058683.57,
+    1759351600.68,
+    1943925871.14,
+    2049172352.74,
+    2101581720.96,
+    2132787284.84,
+    2149099182.3,
+    2128985927.95,
+    2062648995.45,
+    1962883779.25,
+    1841872058.94,
+    1704135500.51,
+    1554522565.28,
+    1399489422.58,
+    1243532663.99,
+    1088821328.46,
+    937304754.427,
+    792044050.775,
+    656717691.231,
+    534466802.768,
+    427126771.855,
+    335105585.322,
+    257724603.25,
+    193751376.913,
+    141830894.568,
+    100671434.732,
+    69013863.5534,
+    45540080.2836,
+    28847477.6909,
+    17506316.1645,
+    10162639.6709,
+    5637781.04925,
+    2987281.99949,
+    1512002.26145,
+    731845.412615,
+    339821.984793,
+    152545.357339,
+    67404.8209077,
+    30489.6912883,
+    15152.1058363,
+    8975.91109751,
+    6496.15482279,
+    5434.80517454,
+    4889.95760724,
+    4521.71627396,
+    4208.46442542,
+    3909.7628178,
+    3614.27410537,
+    3320.72226327,
+    3031.09566114,
+    2748.23668947,
+    2474.97653154,
+    2213.81721565,
+    1966.81521602,
+    1735.5463732,
+    1521.10908823,
+    1324.14905961,
+    1144.89778819,
+    983.220158682,
+    838.667561122
 };
 
 // ------------ method called for each event  ------------
@@ -389,7 +465,7 @@ MakeNtuple::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
    // muons (for event selection)
    Handle< std::vector<pat::Muon> > muons;
    iEvent.getByToken(muonToken_, muons);
-   double nmuons = 0;
+   nmuons = 0;
    double charge = 1.0;
    for ( std::vector<pat::Muon>::const_iterator muon = muons->begin();
          muon != muons->end(); ++muon ) {
@@ -413,8 +489,7 @@ MakeNtuple::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
          charge *= muon->charge();
       }
    }
-
-   double dimuon_mass = 0;
+   dimuon_mass = 0.;
    if( nmuons == 2 ){
       TLorentzVector mu1, mu2;
       mu1.SetPtEtaPhiE( muon_pt[0], muon_eta[0], muon_phi[0], muon_energy[0] );
@@ -448,8 +523,31 @@ MakeNtuple::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
 
    // met
    edm::Handle<edm::View<pat::MET> > metHandle;
+   edm::Handle<edm::View<pat::MET> > metHandlePF;
+   edm::Handle<edm::View<pat::MET> > metHandlePFT1;
+   edm::Handle<edm::View<pat::MET> > metHandlePFT1Smear;
+   edm::Handle<edm::View<pat::MET> > metHandlePFT1SmearJetResUp;
+   edm::Handle<edm::View<pat::MET> > metHandlePFT1SmearJetResDown;
+   edm::Handle<edm::View<pat::MET> > metHandlePFT1JetResUp;
+   edm::Handle<edm::View<pat::MET> > metHandlePFT1JetResDown;
+
    iEvent.getByToken(metToken_, metHandle);
-   const pat::MET& met = (*metHandle)[0];
+   iEvent.getByToken(metTokenPF_, metHandlePF);
+   iEvent.getByToken(metTokenPFT1_, metHandlePFT1);
+   iEvent.getByToken(metTokenPFT1Smear_, metHandlePFT1Smear);
+   iEvent.getByToken(metTokenPFT1SmearJetResUp_, metHandlePFT1SmearJetResUp);
+   iEvent.getByToken(metTokenPFT1SmearJetResDown_, metHandlePFT1SmearJetResDown);
+   iEvent.getByToken(metTokenPFT1JetResUp_, metHandlePFT1JetResUp);
+   iEvent.getByToken(metTokenPFT1JetResDown_, metHandlePFT1JetResDown);
+
+   const pat::MET& met                      = (*metHandle)[0];
+   const pat::MET& metPF                    = (*metHandlePF)[0];
+   const pat::MET& metPFT1                  = (*metHandlePFT1)[0];
+   const pat::MET& metPFT1Smear             = (*metHandlePFT1Smear)[0];
+   const pat::MET& metPFT1SmearJetResUp     = (*metHandlePFT1SmearJetResUp)[0];
+   const pat::MET& metPFT1SmearJetResDown   = (*metHandlePFT1SmearJetResDown)[0];
+   const pat::MET& metPFT1JetResUp          = (*metHandlePFT1JetResUp)[0];
+   const pat::MET& metPFT1JetResDown        = (*metHandlePFT1JetResDown)[0];
 
    // put met into a 4-vector, implement type-1 corrections
    /*
@@ -465,11 +563,43 @@ MakeNtuple::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
    }
    */
 
+   met_PFT1Smear_pt  = metPFT1Smear.pt();
+   met_PFT1Smear_sig = metPFT1Smear.metSignificance();
+
+   met_PFT1SmearJetResUp_pt  = metPFT1SmearJetResUp.pt();
+   met_PFT1SmearJetResUp_sig = metPFT1SmearJetResUp.metSignificance();
+
+   met_PFT1SmearJetResDown_pt  = metPFT1SmearJetResDown.pt();
+   met_PFT1SmearJetResDown_sig = metPFT1SmearJetResDown.metSignificance();
+
+   met_PFT1JetResUp_pt  = metPFT1JetResUp.pt();
+   met_PFT1JetResUp_sig = metPFT1JetResUp.metSignificance();
+
+   met_PFT1JetResDown_pt  = metPFT1JetResDown.pt();
+   met_PFT1JetResDown_sig = metPFT1JetResDown.metSignificance();
+
+   met_PFT1_pt  = metPFT1.pt();
+   met_PFT1_sig = metPFT1.metSignificance();
+
+   met_PF_pt  = metPF.pt();
+   met_PF_sig = metPF.metSignificance();
+
    met_pt = met.pt();
    met_sig = met.metSignificance();
    met_energy = met.energy();
    met_phi = met.phi();
    met_eta = met.eta();
+
+
+
+   std::cout << "met: " << met_pt << std::endl;
+   std::cout << "metPF: " << met_PF_pt << std::endl;
+   std::cout << "metPFT1: " << met_PFT1_pt << std::endl;
+   std::cout << "metPFT1Smear: " << met_PFT1Smear_pt << std::endl;
+   std::cout << "metPFT1SmearJetResUp: " << met_PFT1SmearJetResUp_pt << std::endl;
+   std::cout << "metPFT1SmearJetResDown: " << met_PFT1SmearJetResDown_pt << std::endl;
+   std::cout << "metPFT1JetResUp: " << met_PFT1JetResUp_pt << std::endl;
+   std::cout << "metPFT1JetResDown: " << met_PFT1JetResDown_pt << std::endl;
 
    /*
    std::cout << "MET (new) = " << met_pt << std::endl;
@@ -680,9 +810,9 @@ MakeNtuple::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
    std::cout << "met_sumpt " << met_sumpt << std::endl;
    std::cout << "alt_sumpt " << alt_sumpt << std::endl;
    events_total++;
-   bool pass_selection = (nmuons == 2) and (dimuon_mass > 60) and (dimuon_mass < 120);
-   //bool pass_selection = (nmuons == 2) and (dimuon_mass > 80) and (dimuon_mass < 100);
-   if( pass_selection=1 ){
+   //bool pass_selection = (nmuons == 2) and (dimuon_mass > 60) and (dimuon_mass < 120);
+   bool pass_selection = (nmuons == 2) and (dimuon_mass > 80) and (dimuon_mass < 100);
+   if( pass_selection ){
       results_tree -> Fill();
       events_pass++;
       //std::cout << cleanjets.size() << " / " << jets.size() << std::endl;
@@ -777,6 +907,27 @@ MakeNtuple::beginJob()
 
    results_tree -> Branch("cand_pt", &cand_pt);
 
+   results_tree -> Branch("met_PF_pt", &met_PF_pt);
+   results_tree -> Branch("met_PF_sig", &met_PF_sig);
+
+   results_tree -> Branch("met_PFT1_pt", &met_PFT1_pt);
+   results_tree -> Branch("met_PFT1_sig", &met_PFT1_sig);
+
+   results_tree -> Branch("met_PFT1Smear_pt", &met_PFT1Smear_pt);
+   results_tree -> Branch("met_PFT1Smear_sig", &met_PFT1Smear_sig);
+
+   results_tree -> Branch("met_PFT1SmearJetResUp_pt", &met_PFT1SmearJetResUp_pt);
+   results_tree -> Branch("met_PFT1SmearJetResUp_sig", &met_PFT1SmearJetResUp_sig);
+
+   results_tree -> Branch("met_PFT1SmearJetResDown_pt", &met_PFT1SmearJetResDown_pt);
+   results_tree -> Branch("met_PFT1SmearJetResDown_sig", &met_PFT1SmearJetResDown_sig);
+
+   results_tree -> Branch("met_PFT1JetResDown_pt", &met_PFT1JetResDown_pt);
+   results_tree -> Branch("met_PFT1JetResDown_sig", &met_PFT1JetResDown_sig);
+
+   results_tree -> Branch("met_PFT1JetResUp_pt", &met_PFT1JetResUp_pt);
+   results_tree -> Branch("met_PFT1JetResUp_sig", &met_PFT1JetResUp_sig);
+
    results_tree -> Branch("met_pt", &met_pt);
    results_tree -> Branch("met_sig", &met_sig);
    results_tree -> Branch("met_energy", &met_energy);
@@ -784,6 +935,8 @@ MakeNtuple::beginJob()
    results_tree -> Branch("met_eta", &met_eta);
    results_tree -> Branch("met_sumpt", &met_sumpt);
 
+   results_tree -> Branch("nmuons", &nmuons);
+   results_tree -> Branch("dimuon_mass", &dimuon_mass);
    results_tree -> Branch("nvertices", &nvertices);
    results_tree -> Branch("weight_pu", &weight_pu);
    results_tree -> Branch("nvert_true", &T_nvertices);

@@ -5,7 +5,7 @@ config = Configuration()
 
 config.section_("General")
 config.General.transferLogs = True
-config.General.requestName = 'MetSig_Data_2016B_23Sep2016_v1_JECv10'
+config.General.requestName = 'MetSig_DataMoriond17_2016H-v3_v3'
 config.General.workArea = config.General.requestName
 
 config.section_("JobType")
@@ -13,19 +13,19 @@ config.JobType.allowUndistributedCMSSW = True
 config.JobType.pluginName = 'Analysis'
 config.JobType.psetName = 'makentuple_cfg.py'
 config.JobType.outputFiles = ['ntuple.root']
-config.JobType.inputFiles = ['Spring16_25nsV6_DATA.db','Spring16_25nsV6_MC.db','Spring16_23Sep2016AllV2_DATA.db','Spring16_23Sep2016V2_MC.db']
+config.JobType.inputFiles = ['Summer16_23Sep2016AllV4_DATA.db','Summer16_23Sep2016V4_MC.db', 'Spring16_25nsV6_DATA.db', 'Spring16_25nsV6_MC.db']
 
 config.section_("Data")
 config.Data.lumiMask = 'json/Cert_271036-284044_13TeV_23Sep2016ReReco_Collisions16_JSON.txt'
 
-config.Data.inputDataset = '/DoubleMuon/Run2016B-23Sep2016-v3/MINIAOD'
+#config.Data.inputDataset = '/DoubleMuon/Run2016B-23Sep2016-v3/MINIAOD'
 #config.Data.inputDataset = '/DoubleMuon/Run2016C-23Sep2016-v1/MINIAOD'
 #config.Data.inputDataset = '/DoubleMuon/Run2016D-23Sep2016-v1/MINIAOD'
 #config.Data.inputDataset = '/DoubleMuon/Run2016E-23Sep2016-v1/MINIAOD'
 #config.Data.inputDataset = '/DoubleMuon/Run2016F-23Sep2016-v1/MINIAOD'
 #config.Data.inputDataset = '/DoubleMuon/Run2016G-23Sep2016-v1/MINIAOD'
 #config.Data.inputDataset = '/DoubleMuon/Run2016H-PromptReco-v2/MINIAOD'
-#config.Data.inputDataset = '/DoubleMuon/Run2016H-PromptReco-v3/MINIAOD'
+config.Data.inputDataset = '/DoubleMuon/Run2016H-PromptReco-v3/MINIAOD'
 
 
 config.Data.inputDBS = 'global'

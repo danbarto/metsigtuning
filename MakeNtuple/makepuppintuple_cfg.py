@@ -14,17 +14,6 @@ options.register( 'globalTag',
       '80X_mcRun2_asymptotic_2016_TrancheIV_v8',
       #'80X_dataRun2_2016SeptRepro_v7',
 
-      #'80X_mcRun2_asymptotic_2016_miniAODv2_v1',
-      #'80X_mcRun2_asymptotic_v20',
-      #'80X_dataRun2_Prompt_ICHEP16JEC_v0',
-      #'80X_mcRun2_asymptotic_2016_miniAODv2_v1',
-      #'80X_mcRun2_asymptotic_v17',
-      #'80X_dataRun2_v18',
-      #'80X_dataRun2_Prompt_v11',
-      #'80X_dataRun2_Candidate_2016_09_02_10_26_48',
-      #'74X_dataRun2_Prompt_v1',
-      #'MCRUN2_74_V9',
-      #'GR_P_V56',
       VarParsing.multiplicity.singleton,
       VarParsing.varType.string,
       "CMS Global Tag"
@@ -52,7 +41,7 @@ process = cms.Process("test")
 #process.options = cms.untracked.PSet( allowUnscheduled = cms.untracked.bool(True) )
 
 process.load("FWCore.MessageService.MessageLogger_cfi")
-process.load("metsigtuning.MakeNtuple.makentuple_cfi")
+process.load("metsigtuning.MakeNtuple.makepuppintuple_cfi")
 #process.load("RecoMET/METProducers.METSignificanceObjects_cfi")
 
 process.load('Configuration.StandardSequences.Services_cff')
@@ -111,7 +100,8 @@ process.source = cms.Source("PoolSource",
        #'/store/data/Run2016G/DoubleMuon/MINIAOD/PromptReco-v1/000/278/820/00000/227B551D-AD64-E611-A12B-FA163E951746.root'
        #'/store/data/Run2016C/DoubleMuon/MINIAOD/PromptReco-v2/000/275/601/00000/4423F253-7B3A-E611-8707-02163E013706.root'
        #'/store/data/Run2016C/DoubleMuon/MINIAOD/PromptReco-v2/000/275/657/00000/3460EDF8-7F3B-E611-9318-02163E01461C.root'
-       '/store/mc/RunIISummer16MiniAODv2/DYJetsToLL_M-50_TuneCUETP8M1_13TeV-madgraphMLM-pythia8/MINIAODSIM/PUMoriond17_80X_mcRun2_asymptotic_2016_TrancheIV_v6_ext1-v2/120000/0EA60289-18C4-E611-8A8F-008CFA110AB4.root'
+       #'/store/mc/RunIISummer16MiniAODv2/DYJetsToLL_M-50_TuneCUETP8M1_13TeV-madgraphMLM-pythia8/MINIAODSIM/PUMoriond17_80X_mcRun2_asymptotic_2016_TrancheIV_v6_ext1-v2/120000/0EA60289-18C4-E611-8A8F-008CFA110AB4.root'
+       '/store/mc/RunIISummer16MiniAODv2/DYJetsToLL_M-50_TuneCUETP8M1_13TeV-amcatnloFXFX-pythia8/MINIAODSIM/PUMoriond17_HCALDebug_80X_mcRun2_asymptotic_2016_TrancheIV_v6-v1/50000/00BCC036-F6BD-E611-92F5-0025905A6118.root'
        #'/store/mc/RunIISummer16MiniAODv2/WW_TuneCUETP8M1_13TeV-pythia8/MINIAODSIM/PUMoriond17_80X_mcRun2_asymptotic_2016_TrancheIV_v6-v1/60000/0449B17C-BAD7-E611-8430-0025905B85EC.root'
        #'/store/data/Run2016G/DoubleMuon/MINIAOD/23Sep2016-v1/100000/00DD00F8-008C-E611-8CD0-00266CFFC9C4.root'
        #'/store/mc/RunIISpring16MiniAODv1/DYJetsToLL_M-50_HT-100to200_TuneCUETP8M1_13TeV-madgraphMLM-pythia8/MINIAODSIM/PUSpring16_80X_mcRun2_asymptotic_2016_v3_ext1-v1/00000/06B334D9-4DFE-E511-B1A1-001E67A40604.root'
@@ -147,24 +137,58 @@ runMetCorAndUncFromMiniAOD(process,
       isData =  not options.runOnMC,
       )
 
-process.test = cms.EDAnalyzer('MakeNtuple',
-      src                       = cms.InputTag("packedPFCandidates"),
-      #jets                      = cms.InputTag("slimmedJets"), #same as selectedUpdatedPatJetsUpdatedJEC
+# PUPPI
+process.load('CommonTools/PileupAlgos/Puppi_cff')
+process.load('CommonTools/PileupAlgos/PhotonPuppi_cff')
+from CommonTools.PileupAlgos.PhotonPuppi_cff        import setupPuppiPhoton
+from PhysicsTools.PatAlgos.slimming.puppiForMET_cff import makePuppiesFromMiniAOD
+
+redoPuppi = True
+if redoPuppi:
+    runMetCorAndUncFromMiniAOD(process,
+                               isData = not options.runOnMC,
+                               metType="Puppi",
+                               pfCandColl=cms.InputTag("puppiForMET"),
+                               recoMetFromPFCs=True,
+                               reclusterJets=True,
+                               jetFlavor="AK4PFPuppi",
+                               postfix="Puppi"
+                               )
+
+process.puppi.candName = 'packedPFCandidates'
+process.puppi.candName = cms.InputTag('packedPFCandidates')
+process.puppi.vertexName = cms.InputTag('offlineSlimmedPrimaryVertices')
+
+makePuppiesFromMiniAOD(process)
+#process.load('RecoMET.METProducers.PFMET_cfi')
+from RecoMET.METProducers.PFMET_cfi import pfMet
+process.pfMetPuppi = pfMet.clone();
+process.pfMetPuppi.src = cms.InputTag('puppiForMET')
+process.puSequence = cms.Sequence(process.pfNoLepPUPPI*process.puppi*process.puppiNoLep*process.egmPhotonIDSequence*process.puppiForMET*process.pfMetPuppi)
+
+
+process.test = cms.EDAnalyzer('MakePuppiNtuple',
+      #src                       = cms.InputTag("puppiNoLep"),
+      src                       = cms.InputTag("puppiForMET"),
+      #puppi                     = cms.InputTag("recoPFCandidates"),
+      #puppi                     = cms.InputTag("puppiNoLep"),
+      puppi                     = cms.InputTag("puppiForMET"),
+      jets                      = cms.InputTag("cleanedPatJetsPuppi"),
+      #jets                      = cms.InputTag("slimmedJetsPuppi"),
       #jets                      = cms.InputTag("selectedUpdatedPatJetsUpdatedJEC"),
-      jets                      = cms.InputTag("cleanedPatJets"),
       leptons                   = cms.VInputTag("slimmedElectrons", "slimmedMuons", "slimmedPhotons"),
-      met                       = cms.InputTag("slimmedMETs"),
-      metPF                     = cms.InputTag("patPFMet"),
-      metPFT1                   = cms.InputTag("patPFMetT1"),
-      metPFT1Smear              = cms.InputTag("patPFMetT1Smear"),
-      metPFT1SmearJetResUp      = cms.InputTag("patPFMetT1SmearJetResUp"),
-      metPFT1SmearJetResDown    = cms.InputTag("patPFMetT1SmearJetResDown"),
-      metPFT1JetResUp           = cms.InputTag("patPFMetT1JetResUp"),
-      metPFT1JetResDown         = cms.InputTag("patPFMetT1JetResDown"),
-      metPFT1JetEnUp            = cms.InputTag("patPFMetT1JetEnUp"),
-      metPFT1JetEnDown          = cms.InputTag("patPFMetT1JetEnDown"),
-      metPFT1UnclusteredEnUp    = cms.InputTag("patPFMetT1UnclusteredEnUp"),
-      metPFT1UnclusteredEnDown  = cms.InputTag("patPFMetT1UnclusteredEnDown"),
+      met                       = cms.InputTag("slimmedMETsPuppi"),
+      metPF                     = cms.InputTag("patPFMetPuppi"),
+      metPFT1                   = cms.InputTag("patPFMetT1Puppi"),
+      metPFT1Smear              = cms.InputTag("patPFMetT1SmearPuppi"),
+      metPFT1SmearJetResUp      = cms.InputTag("patPFMetT1SmearJetResUpPuppi"),
+      metPFT1SmearJetResDown    = cms.InputTag("patPFMetT1SmearJetResDownPuppi"),
+      metPFT1JetResUp           = cms.InputTag("patPFMetT1JetResUpPuppi"),
+      metPFT1JetResDown         = cms.InputTag("patPFMetT1JetResDownPuppi"),
+      metPFT1JetEnUp            = cms.InputTag("patPFMetT1JetEnUpPuppi"),
+      metPFT1JetEnDown          = cms.InputTag("patPFMetT1JetEnDownPuppi"),
+      metPFT1UnclusteredEnUp    = cms.InputTag("patPFMetT1UnclusteredEnUpPuppi"),
+      metPFT1UnclusteredEnDown  = cms.InputTag("patPFMetT1UnclusteredEnDownPuppi"),
       muons                     = cms.InputTag("slimmedMuons"),
       electrons                 = cms.InputTag("slimmedElectrons"),
       vertices                  = cms.InputTag("offlineSlimmedPrimaryVertices"),
@@ -280,6 +304,7 @@ if options.runOnMC:
       #process.eeBadScFilter *
       #process.BadPFMuonFilter *
       #process.BadChargedCandidateFilter *
+      process.puSequence *
       process.test
       )
 

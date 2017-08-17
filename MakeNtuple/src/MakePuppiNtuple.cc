@@ -74,10 +74,10 @@
 // class declaration
 //
 
-class MakeNtuple : public edm::EDAnalyzer {
+class MakePuppiNtuple : public edm::EDAnalyzer {
    public:
-      explicit MakeNtuple(const edm::ParameterSet&);
-      ~MakeNtuple();
+      explicit MakePuppiNtuple(const edm::ParameterSet&);
+      ~MakePuppiNtuple();
 
       static void fillDescriptions(edm::ConfigurationDescriptions& descriptions);
 
@@ -90,6 +90,7 @@ class MakeNtuple : public edm::EDAnalyzer {
       std::vector<pat::Jet> cleanJets(double, double,
             std::vector<pat::Jet>&, std::vector<reco::Candidate::LorentzVector>&);
       edm::EDGetTokenT<edm::View<reco::Candidate> > inputToken_;
+      edm::EDGetTokenT<edm::View<reco::Candidate> > puppiToken_;
       edm::EDGetTokenT<edm::View<pat::Jet> > jetToken_;
       std::vector< edm::EDGetTokenT<edm::View<reco::Candidate> > > lepTokens_;
       edm::EDGetTokenT<edm::View<pat::MET> > metToken_;
@@ -134,6 +135,7 @@ class MakeNtuple : public edm::EDAnalyzer {
       static const double PU2015_Dataf[NUMPUBINS];
 
       TTree *results_tree;
+      TTree *weights_tree;
       TFile *OutFile__file;
       std::string OutputFileName_;
 
@@ -144,13 +146,16 @@ class MakeNtuple : public edm::EDAnalyzer {
       std::vector<int> muon_charge;
       std::vector<double> jet_pt, jet_energy, jet_phi, jet_eta;
       std::vector<double> cand_pt, cand_energy, cand_phi, cand_eta, cand_x, cand_y;
+      std::vector<double> puppi_cand_pt, puppi_cand_phi;
       std::vector<double> jet_sigmapt, jet_sigmaphi;
       std::vector<double> jet_corrL1, jet_corrL123;
       std::vector<bool> jet_passid;
       std::vector<double> jet_sf;
+      double sumweight = 0;
       double c_xx, c_xy, c_yy,x_tot, x_bar, y_tot, y_bar;
       double dimuon_mass;
       double met_pt, met_energy, met_phi, met_eta, met_sumpt, met_sig, alt_sumpt;
+      double puppi_met_sumpt;
       double met_PF_pt,                 met_PF_sig;
       double met_PFT1_pt,               met_PFT1_sig;
       double met_PFT1JetResDown_pt,     met_PFT1JetResDown_sig;
@@ -164,6 +169,7 @@ class MakeNtuple : public edm::EDAnalyzer {
       double met_PFT1UnclusteredEnDown_pt,met_PFT1UnclusteredEnDown_sig, met_PFT1UnclusteredEnDown_phi;
 
       int nvertices, met_sumpt_inputs, nmuons;
+      int puppi_met_sumpt_inputs;
       double weight_pu;
       double mcweight, mcweightSum;
 
@@ -186,11 +192,12 @@ class MakeNtuple : public edm::EDAnalyzer {
 //
 // constructors and destructor
 //
-MakeNtuple::MakeNtuple(const edm::ParameterSet& iConfig)
+MakePuppiNtuple::MakePuppiNtuple(const edm::ParameterSet& iConfig)
 
 {
    //now do what ever initialization is needed
    inputToken_ = consumes<edm::View<reco::Candidate> >(iConfig.getParameter<edm::InputTag>("src"));
+   puppiToken_ = consumes<edm::View<reco::Candidate> >(iConfig.getParameter<edm::InputTag>("puppi"));
    jetToken_ = consumes<edm::View<pat::Jet> >(iConfig.getParameter<edm::InputTag>("jets"));
    std::vector<edm::InputTag> srcLeptonsTags = iConfig.getParameter< std::vector<edm::InputTag> >("leptons");
    for(std::vector<edm::InputTag>::const_iterator it=srcLeptonsTags.begin();it!=srcLeptonsTags.end();it++) {
@@ -235,7 +242,7 @@ MakeNtuple::MakeNtuple(const edm::ParameterSet& iConfig)
 }
 
 
-MakeNtuple::~MakeNtuple()
+MakePuppiNtuple::~MakePuppiNtuple()
 {
  
    // do anything here that needs to be done at desctruction time
@@ -248,7 +255,7 @@ MakeNtuple::~MakeNtuple()
 // member functions
 //
 
-const double MakeNtuple::PU2015_MCf[NUMPUBINS] = {
+const double MakePuppiNtuple::PU2015_MCf[NUMPUBINS] = {
    // Updated to PU for Summer16 from: SimGeneral/MixingModule/python/mix_2016_25ns_Moriond17MC_PoissonOOTPU_cfi.py 
    // pileup distribution for Spring2016 MC
    // obtained at https://twiki.cern.ch/twiki/bin/viewauth/CMS/PdmVPileUpDescription#Startup2015
@@ -330,7 +337,7 @@ const double MakeNtuple::PU2015_MCf[NUMPUBINS] = {
     1.33287e-05
 };
 
-const double MakeNtuple::PU2015_Dataf[NUMPUBINS] = {
+const double MakePuppiNtuple::PU2015_Dataf[NUMPUBINS] = {
    // obtained with pileupCalc.py -i $JSON --inputLumiJSON $PILEUP_LATEST --calcMode true --minBiasXsec 69200 --maxPileupBin 75 --numPileupBins 75 PU_2016_${LUMI}_XSecCentral.root
    // 'true' distribution for 2016 RunA-H dataset
    // obtained with pileupCalc.py (04.21.2016)
@@ -413,7 +420,7 @@ const double MakeNtuple::PU2015_Dataf[NUMPUBINS] = {
 
 // ------------ method called for each event  ------------
 void
-MakeNtuple::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
+MakePuppiNtuple::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
 {
    using namespace edm;
 
@@ -434,6 +441,8 @@ MakeNtuple::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
    jet_eta.clear();
 
    cand_pt.clear();
+   puppi_cand_pt.clear();
+   puppi_cand_phi.clear();
    cand_energy.clear();
    cand_phi.clear();
    cand_eta.clear();
@@ -451,6 +460,9 @@ MakeNtuple::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
    Handle<View<reco::Candidate> > input;
    iEvent.getByToken(inputToken_, input);
 
+   Handle<View<reco::Candidate> > puppiInput;
+   iEvent.getByToken(puppiToken_, puppiInput);
+
    // offline primary vertices
    edm::Handle<edm::View<reco::Vertex> > vertices;
    iEvent.getByToken(verticesToken_, vertices);
@@ -462,23 +474,20 @@ MakeNtuple::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
    for ( std::vector<EDGetTokenT<View<reco::Candidate> > >::const_iterator srcLeptons_i = lepTokens_.begin(); srcLeptons_i != lepTokens_.end(); ++srcLeptons_i ) {
       Handle<reco::CandidateView> leptons_i;
       iEvent.getByToken(*srcLeptons_i, leptons_i);
-      //std::cout << "Leptons size tool " << leptons_i->size() << std::endl;
-      for ( reco::CandidateView::const_iterator lepton = leptons_i->begin(); lepton != leptons_i->end(); ++lepton ) {
+      //std::cout << "Lepton coll size " << leptons_i->size() << std::endl;
+      for ( reco::CandidateView::const_iterator lepton = leptons_i->begin(); lepton != leptons_i->end(); lepton++ ) { //++lepton
          // cut on lepton pt
-         //std::cout << lepton->pt() << std::endl;
          if( lepton->pt() > 10 ){
             leptons.push_back(lepton->p4());
             for( unsigned int n=0; n < lepton->numberOfSourceCandidatePtrs(); n++){
                if( lepton->sourceCandidatePtr(n).isNonnull() and lepton->sourceCandidatePtr(n).isAvailable() ){
-                  //std::cout << "Adding to footprint " << lepton->pt() << std::endl;
-                  //footprint.insert(lepton->sourceCandidatePtr(n));
                   footprint.push_back(lepton->sourceCandidatePtr(n));
+                  //std::cout << "Lepton pt, phi, eta " << lepton->pt() << " " << lepton->phi() << " " << lepton->eta() << std::endl;
                }
             }
          }
       }
    }
-   //std::cout << "Pos1 f size " << footprint.size() << std::endl;
 
 
    // muons (for event selection)
@@ -530,19 +539,16 @@ MakeNtuple::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
 
    // disambiguate jets and leptons
    std::vector<pat::Jet> cleanjets = cleanJets(jetThreshold, 0.4, jets, leptons);
-   //std::vector<pat::Jet> cleanjets = cleanJets(0, 0.4, jets, leptons);
-   //std::cout << "Size of jets in tool " << jets.size() << std::endl;
+
    // loop over jets to disambiguate candidates
    for(std::vector<pat::Jet>::const_iterator jet = cleanjets.begin(); jet != cleanjets.end(); ++jet) {
       for( unsigned int n=0; n < jet->numberOfSourceCandidatePtrs(); n++){
          if( jet->sourceCandidatePtr(n).isNonnull() and jet->sourceCandidatePtr(n).isAvailable() ){
-            //footprint.insert(jet->sourceCandidatePtr(n));
             footprint.push_back(jet->sourceCandidatePtr(n));
+            //std::cout << "Jet pt, phi, eta " << jet->pt() << " " << jet->phi() << " " << jet->eta() << std::endl;
          }
       }
    }
-   //std::cout << "Pos2 f size " << footprint.size() << std::endl;
-
 
    // met
    edm::Handle<edm::View<pat::MET> > metHandle;
@@ -676,45 +682,32 @@ MakeNtuple::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
    fflush(stdout);
    */
 
-   //// candidates, old version
-   //std::vector<reco::Candidate::LorentzVector> candidates;
-   //for(View<reco::Candidate>::const_iterator cand = input->begin();
-   //      cand != input->end(); ++cand) {
-   //   unsigned int iter = cand - input->begin();
-   //   if (std::find(footprint.begin(), footprint.end(),
-   //            reco::CandidatePtr(input,iter)) != footprint.end()) {
-   //      continue;
-   //   }
-   //   candidates.push_back( cand->p4() );
-   //}
-   
-   met_sumpt = 0;
-   int nCand = 0;
+   // candidates
    std::vector<reco::Candidate::LorentzVector> candidates;
-   //std::cout << "Input size in tool " << input->size() << std::endl;
-   //std::cout << "Footprint size in tool " << footprint.size() << std::endl;
+   for(View<reco::Candidate>::const_iterator cand = input->begin();cand != input->end(); ++cand) {
+      unsigned int iter = cand - input->begin();
+      if (std::find(footprint.begin(), footprint.end(),reco::CandidatePtr(input,iter)) != footprint.end()) continue;
+      candidates.push_back( cand->p4() );
+   }
 
-   for(size_t i = 0; i < input->size();  ++i) {
+   std::vector<reco::Candidate::LorentzVector> puppiCandidates;
+   for(size_t i = 0; i< puppiInput->size();  ++i) {
       bool cleancand = true;
-      //if(footprint.find( input->ptrAt(i) )==footprint.end()) {
-      if (std::find(footprint.begin(), footprint.end(), input->ptrAt(i)) == footprint.end()) {
+      if (std::find(footprint.begin(), footprint.end(), puppiInput->ptrAt(i)) == footprint.end()) {
         for( std::vector<reco::CandidatePtr>::const_iterator fit=footprint.begin();fit!=footprint.end();fit++) { //set, const_iterator
-          if( ((*fit)->p4()-(*input)[i].p4()).Et2()<0.000025 ){
+          if( ((*fit)->p4()-(*puppiInput)[i].p4()).Et2()<0.000025 ){
             cleancand = false;
+            //std::cout << "not a clean candidate" << std::endl;
+            //std::cout << (*puppiInput)[i].pt() << std::endl;
             break;
           }
         }
         if( cleancand ){
-          candidates.push_back( (*input)[i].p4() );
-          met_sumpt += (*input)[i].pt();
-          nCand++;
+          puppiCandidates.push_back( (*puppiInput)[i].p4() );
         }
       }
    }
 
-
-   //std::cout << "Test sumpt " << met_sumpt << std::endl;
-   //std::cout << "nCand tool " << nCand << std::endl;
    // resolutions
    /*
    std::string path = "METSigTuning/MakeNtuple/data/";
@@ -762,7 +755,8 @@ MakeNtuple::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
       //std::cout << mcweight << " " << mcweightSum << std::endl;
       //fflush(stdout);
    }
-
+   //std::cout << "Event weight " << mcweight << std::endl;
+   sumweight += mcweight;
    weight_pu = 1.0;
    if( runOnMC_ ){
       View<PileupSummaryInfo>::const_iterator PVI;
@@ -792,17 +786,22 @@ MakeNtuple::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
    // candidates already have clean jets removed
    met_sumpt_inputs = 0;
    met_sumpt = 0;
-   for( std::vector<reco::Candidate::LorentzVector>::const_iterator cand = candidates.begin(); cand != candidates.end(); ++cand){
-      if (cand->pt()>0){
-        met_sumpt += cand->Pt();
-        cand_pt.push_back( cand->Pt() );
-        //cand_energy.push_back( cand->energy() );
-        cand_phi.push_back( cand->Phi() );
-        cand_eta.push_back( cand->Eta() );
+   for( std::vector<reco::Candidate::LorentzVector>::const_iterator puppiCand = puppiCandidates.begin();puppiCand != puppiCandidates.end(); ++puppiCand){
+      if (puppiCand->Pt()>0){
+        met_sumpt += puppiCand->Pt();
         met_sumpt_inputs++;
+        puppi_cand_pt.push_back( puppiCand->Pt() );
+        puppi_cand_phi.push_back( puppiCand->Phi() );
+        cand_pt.push_back( puppiCand->Pt() );
+        cand_phi.push_back( puppiCand->Phi() );
+        cand_eta.push_back( puppiCand->Eta() );
       }
    }
-   //std::cout << "intermediate sumpt in tool " << met_sumpt << std::endl;
+
+   //std::cout << "MET sum pT inputs " << met_sumpt_inputs << std::endl;
+   //std::cout << "MET sum pT " << met_sumpt << std::endl;
+
+
    /*
    // loop over leptons
    for ( std::vector<reco::Candidate::LorentzVector>::const_iterator lepton = leptons.begin();
@@ -840,8 +839,7 @@ MakeNtuple::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
       // split into high-pt and low-pt sector
       if( jpt > jetThreshold ){
          // high-pt jets enter into the covariance matrix via JER
-         //std::cout << "Jet parameters in tool" << std::endl;
-         //std::cout << jpt << " " << jeta << " " << sigmapt << " " << sigmaphi << std::endl;
+
          jet_pt.push_back( jet->pt() );
          jet_energy.push_back( jet->energy() );
          jet_phi.push_back( jet->phi() );
@@ -874,6 +872,8 @@ MakeNtuple::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
          // add the (corrected) jet to the met_sumpt
          // (was subtracted previously)
          cand_pt.push_back( jet->pt() );
+         puppi_cand_pt.push_back( jet->pt() );
+         puppi_cand_phi.push_back( jet->phi() );
          cand_energy.push_back( jet->energy() );
          cand_phi.push_back( jet->phi() );
          cand_eta.push_back( jet->eta() );
@@ -882,10 +882,12 @@ MakeNtuple::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
 
       }
    }
-   //std::cout << "sumpt in tool " << met_sumpt << std::endl;
+   std::cout << "sumpt in tool " << met_sumpt << std::endl;
+
    int i = 0;
    x_tot = 0;
    y_tot = 0;
+   //std::cout << "len of cand_pt " << cand_pt.size() << std::endl;
    for ( std::vector<double>::const_iterator candpt = cand_pt.begin(); candpt != cand_pt.end(); ++candpt ) {
              //std::cout << (*candpt) << std::endl;
              cand_x.push_back(cand_pt.at(i) * cos(cand_phi.at(i)));
@@ -895,7 +897,9 @@ MakeNtuple::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
 
              i++;
    }
-   
+   //std::cout << "len of cand_x " << cand_x.size() << std::endl;
+   //std::cout << "len of cand_y " << cand_y.size() << std::endl;
+
    y_bar = y_tot/cand_y.size();
    x_bar = x_tot/cand_x.size();
    //std::cout << x_bar << " " << x_tot << std::endl;
@@ -903,14 +907,16 @@ MakeNtuple::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
    i = 0;
    c_xx = c_xy = c_yy = 0;
    for ( std::vector<double>::const_iterator candpt = cand_pt.begin(); candpt != cand_pt.end(); ++candpt ) {
+        if (cand_x.at(i)>0 || cand_y.at(i)>0){
              c_xx += (cand_x.at(i) - x_bar)*(cand_x.at(i) - x_bar);
              c_xy += (cand_x.at(i) - x_bar)*(cand_y.at(i) - y_bar);
              c_yy += (cand_y.at(i) - y_bar)*(cand_y.at(i) - y_bar);
-             i++;
+        }
+        i++;
    }
-   //std :: cout << "MET pT " << met_pt << std::endl;
-   //std :: cout << "MET sum_pT " << met_sumpt << std::endl;
-   //std :: cout << "Number of unclustered candidates " << met_sumpt_inputs << std::endl;
+   //std::cout << "MET pT " << met_pt << std::endl;
+   //std::cout << "MET sum_pT " << met_sumpt << std::endl;
+   //std::cout << "Number of unclustered candidates " << met_sumpt_inputs << std::endl;
    //std::cout << c_xx << " " << c_xy << " " << c_yy << std::endl;
    c_xx = (cand_pt.size()-1.)/cand_pt.size() * c_xx;
    c_xy = (cand_pt.size()-1.)/cand_pt.size() * c_xy;
@@ -944,30 +950,35 @@ MakeNtuple::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
 
 }
 
-std::vector<pat::Jet> MakeNtuple::cleanJets(double ptThreshold, double dRmatch, std::vector<pat::Jet>& jets, std::vector<reco::Candidate::LorentzVector>& leptons){
-    double dR2match = dRmatch*dRmatch;
-    std::vector<pat::Jet> retVal;
-    for ( std::vector<pat::Jet>::const_iterator jet = jets.begin(); jet != jets.end(); ++jet ) {
-        bool isOverlap = false;
-        for ( std::vector<reco::Candidate::LorentzVector>::const_iterator lepton = leptons.begin(); lepton != leptons.end(); ++lepton ) {
-            TLorentzVector ljet, llep;
-            ljet.SetPtEtaPhiE( jet->pt(), jet->eta(), jet->phi(), jet->energy() );
-            llep.SetPtEtaPhiE( lepton->pt(), lepton->eta(), lepton->phi(), lepton->energy() );
-            if ( pow(ljet.DeltaR( llep ),2) < dR2match ) isOverlap = true;
-            //if ( reco::deltaR2(ljet, llep) < dR2match ) isOverlap = true;
-        }
-        //if ( jet->pt() > ptThreshold && !isOverlap ){
-        if ( !isOverlap ){
-            retVal.push_back(*jet);
-        }
-    }
-    return retVal;
+   std::vector<pat::Jet>
+MakePuppiNtuple::cleanJets(double ptThreshold, double dRmatch,
+      std::vector<pat::Jet>& jets, std::vector<reco::Candidate::LorentzVector>& leptons)
+{
+   double dR2match = dRmatch*dRmatch;
+   std::vector<pat::Jet> retVal;
+   for ( std::vector<pat::Jet>::const_iterator jet = jets.begin();
+         jet != jets.end(); ++jet ) {
+      bool isOverlap = false;
+      for ( std::vector<reco::Candidate::LorentzVector>::const_iterator lepton = leptons.begin();
+            lepton != leptons.end(); ++lepton ) {
+         TLorentzVector ljet, llep;
+         ljet.SetPtEtaPhiE( jet->pt(), jet->eta(), jet->phi(), jet->energy() );
+         llep.SetPtEtaPhiE( lepton->pt(), lepton->eta(), lepton->phi(), lepton->energy() );
+         if ( pow(ljet.DeltaR( llep ),2) < dR2match ) isOverlap = true;
+      }
+      //if ( jet->pt() > ptThreshold && !isOverlap ){
+      if ( !isOverlap ){
+         retVal.push_back(*jet);
+      }
+   }
+
+   return retVal;
 }
 
 
 // ------------ method called once each job just before starting event loop  ------------
 void 
-MakeNtuple::beginJob()
+MakePuppiNtuple::beginJob()
 {
 
    events_total=0, events_pass=0;
@@ -983,7 +994,10 @@ MakeNtuple::beginJob()
       PU2015_Data.push_back( PU2015_Dataf[i] );
    }
    LumiWeights_ = edm::LumiReWeighting( PU2015_MC, PU2015_Data);
-
+   
+   weights_tree = new TTree("weights", "weights");
+   weights_tree -> Branch("sumweight", &sumweight, "sumweight/D");
+   
    results_tree = new TTree("events", "events");
    results_tree -> Branch("run", &run, "run/I");
    results_tree -> Branch("lumi", &lumi, "lumi/I");
@@ -1016,8 +1030,10 @@ MakeNtuple::beginJob()
    //results_tree -> Branch("jet_corrL1", &jet_corrL1);
    //results_tree -> Branch("jet_corrL123", &jet_corrL123);
 
-   //results_tree -> Branch("cand_pt", &cand_pt);
-   //results_tree -> Branch("cand_phi", &cand_phi);
+   results_tree -> Branch("puppi_cand_pt", &puppi_cand_pt);
+   results_tree -> Branch("puppi_cand_phi", &puppi_cand_phi);
+   results_tree -> Branch("cand_pt", &cand_pt);
+   results_tree -> Branch("cand_phi", &cand_phi);
 
    results_tree -> Branch("cov_xx", &c_xx);
    results_tree -> Branch("cov_xy", &c_xy);
@@ -1075,8 +1091,10 @@ MakeNtuple::beginJob()
 
 // ------------ method called once each job just after ending the event loop  ------------
 void 
-MakeNtuple::endJob() 
+MakePuppiNtuple::endJob() 
 {
+   std::cout << "Sum of weights: " << sumweight << std::endl;
+   weights_tree -> Fill();
    OutFile__file -> Write();
    OutFile__file -> Close();
    std::cout << " *** NUMBER OF EVENTS PASSING SELECTION *** " << std::endl;
@@ -1117,7 +1135,7 @@ MakeNtuple::endLuminosityBlock(edm::LuminosityBlock const&, edm::EventSetup cons
 
 // ------------ method fills 'descriptions' with the allowed parameters for the module  ------------
 void
-MakeNtuple::fillDescriptions(edm::ConfigurationDescriptions& descriptions) {
+MakePuppiNtuple::fillDescriptions(edm::ConfigurationDescriptions& descriptions) {
   //The following says we do not know what parameters are allowed so do no validation
   // Please change this to state exactly what you do use, even if it is no parameters
   edm::ParameterSetDescription desc;
@@ -1126,4 +1144,4 @@ MakeNtuple::fillDescriptions(edm::ConfigurationDescriptions& descriptions) {
 }
 
 //define this as a plug-in
-DEFINE_FWK_MODULE(MakeNtuple);
+DEFINE_FWK_MODULE(MakePuppiNtuple);

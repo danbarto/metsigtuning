@@ -40,6 +40,12 @@
 #include "SimDataFormats/GeneratorProducts/interface/HepMCProduct.h"
 #include "SimDataFormats/PileupSummaryInfo/interface/PileupSummaryInfo.h" 
 
+#include "DataFormats/PatCandidates/interface/VIDCutFlowResult.h"
+#include "DataFormats/Common/interface/ValueMap.h"
+#include "DataFormats/Math/interface/deltaR.h"
+#include "DataFormats/PatCandidates/interface/Electron.h"
+
+
 #include "DataFormats/METReco/interface/PFMET.h"
 #include "DataFormats/JetReco/interface/Jet.h"
 #include "DataFormats/JetReco/interface/PFJet.h"
@@ -49,6 +55,7 @@
 #include "DataFormats/PatCandidates/interface/Jet.h"
 #include "DataFormats/MuonReco/interface/MuonSelectors.h"
 #include "DataFormats/PatCandidates/interface/Muon.h"
+#include "DataFormats/EgammaCandidates/interface/GsfElectron.h"
 #include "DataFormats/PatCandidates/interface/MET.h"
 
 #include "SimDataFormats/PileupSummaryInfo/interface/PileupSummaryInfo.h"
@@ -74,10 +81,10 @@
 // class declaration
 //
 
-class MakeNtuple : public edm::EDAnalyzer {
+class MakeEleNtuple : public edm::EDAnalyzer {
    public:
-      explicit MakeNtuple(const edm::ParameterSet&);
-      ~MakeNtuple();
+      explicit MakeEleNtuple(const edm::ParameterSet&);
+      ~MakeEleNtuple();
 
       static void fillDescriptions(edm::ConfigurationDescriptions& descriptions);
 
@@ -93,22 +100,18 @@ class MakeNtuple : public edm::EDAnalyzer {
       edm::EDGetTokenT<edm::View<pat::Jet> > jetToken_;
       std::vector< edm::EDGetTokenT<edm::View<reco::Candidate> > > lepTokens_;
       edm::EDGetTokenT<edm::View<pat::MET> > metToken_;
-      edm::EDGetTokenT<edm::View<pat::MET> > metTokenPF_;
-      edm::EDGetTokenT<edm::View<pat::MET> > metTokenPFT1_;
-      edm::EDGetTokenT<edm::View<pat::MET> > metTokenPFT1Smear_;
-      edm::EDGetTokenT<edm::View<pat::MET> > metTokenPFT1SmearJetResUp_;
-      edm::EDGetTokenT<edm::View<pat::MET> > metTokenPFT1SmearJetResDown_;
-      edm::EDGetTokenT<edm::View<pat::MET> > metTokenPFT1JetResUp_;
-      edm::EDGetTokenT<edm::View<pat::MET> > metTokenPFT1JetResDown_;
-      edm::EDGetTokenT<edm::View<pat::MET> > metTokenPFT1JetEnUp_;
-      edm::EDGetTokenT<edm::View<pat::MET> > metTokenPFT1JetEnDown_;
-      edm::EDGetTokenT<edm::View<pat::MET> > metTokenPFT1UnclusteredEnUp_;
-      edm::EDGetTokenT<edm::View<pat::MET> > metTokenPFT1UnclusteredEnDown_;
-      edm::EDGetTokenT<edm::View<pat::MET> > metTokenSmear_;
       edm::EDGetTokenT<GenEventInfoProduct> genToken_;
       edm::EDGetTokenT<LHEEventProduct> lheToken_;
       edm::EDGetTokenT< std::vector<pat::Muon> > muonToken_;
+      edm::EDGetTokenT< std::vector<pat::Electron> > electronToken_;
       edm::EDGetTokenT<edm::View<reco::Vertex> > verticesToken_;
+
+      // electron id
+      edm::EDGetTokenT<edm::ValueMap<bool>> electronVetoIdMapToken_;
+      edm::EDGetTokenT<edm::ValueMap<bool>> electronLooseIdMapToken_;
+      edm::EDGetTokenT<edm::ValueMap<bool>> electronMediumIdMapToken_;
+      edm::EDGetTokenT<edm::ValueMap<bool>> electronTightIdMapToken_;
+
       Bool_t runOnMC_;
       //edm::InputTag addPileupInfo_;
       edm::EDGetTokenT<edm::View<PileupSummaryInfo> > pileupToken_;
@@ -142,6 +145,8 @@ class MakeNtuple : public edm::EDAnalyzer {
       std::vector<double> lep_pt, lep_energy, lep_phi, lep_eta;
       std::vector<double> muon_pt, muon_energy, muon_phi, muon_eta;
       std::vector<int> muon_charge;
+      std::vector<double> ele_pt, ele_energy, ele_phi, ele_eta, ele_loose, ele_medium, ele_tight;
+      std::vector<int> ele_charge;
       std::vector<double> jet_pt, jet_energy, jet_phi, jet_eta;
       std::vector<double> cand_pt, cand_energy, cand_phi, cand_eta, cand_x, cand_y;
       std::vector<double> jet_sigmapt, jet_sigmaphi;
@@ -151,19 +156,8 @@ class MakeNtuple : public edm::EDAnalyzer {
       double c_xx, c_xy, c_yy,x_tot, x_bar, y_tot, y_bar;
       double dimuon_mass;
       double met_pt, met_energy, met_phi, met_eta, met_sumpt, met_sig, alt_sumpt;
-      double met_PF_pt,                 met_PF_sig;
-      double met_PFT1_pt,               met_PFT1_sig;
-      double met_PFT1JetResDown_pt,     met_PFT1JetResDown_sig;
-      double met_PFT1JetResUp_pt,       met_PFT1JetResUp_sig;
-      double met_PFT1Smear_pt,          met_PFT1Smear_sig;
-      double met_PFT1SmearJetResUp_pt,  met_PFT1SmearJetResUp_sig;
-      double met_PFT1SmearJetResDown_pt,met_PFT1SmearJetResDown_sig;
-      double met_PFT1JetEnUp_pt,  met_PFT1JetEnUp_sig;
-      double met_PFT1JetEnDown_pt,met_PFT1JetEnDown_sig;
-      double met_PFT1UnclusteredEnUp_pt,  met_PFT1UnclusteredEnUp_sig, met_PFT1UnclusteredEnUp_phi;
-      double met_PFT1UnclusteredEnDown_pt,met_PFT1UnclusteredEnDown_sig, met_PFT1UnclusteredEnDown_phi;
 
-      int nvertices, met_sumpt_inputs, nmuons;
+      int nvertices, met_sumpt_inputs, nmuons, nMediumElectrons, nLooseElectrons, nTightElectrons;
       double weight_pu;
       double mcweight, mcweightSum;
 
@@ -186,7 +180,7 @@ class MakeNtuple : public edm::EDAnalyzer {
 //
 // constructors and destructor
 //
-MakeNtuple::MakeNtuple(const edm::ParameterSet& iConfig)
+MakeEleNtuple::MakeEleNtuple(const edm::ParameterSet& iConfig)
 
 {
    //now do what ever initialization is needed
@@ -197,21 +191,9 @@ MakeNtuple::MakeNtuple(const edm::ParameterSet& iConfig)
       lepTokens_.push_back( consumes<edm::View<reco::Candidate> >( *it ) );
    }
    metToken_                        = consumes<edm::View<pat::MET> >(iConfig.getParameter<edm::InputTag>("met"));
-   metTokenPF_                      = consumes<edm::View<pat::MET> >(iConfig.getParameter<edm::InputTag>("metPF"));
-   metTokenPFT1_                    = consumes<edm::View<pat::MET> >(iConfig.getParameter<edm::InputTag>("metPFT1"));
-   metTokenPFT1Smear_               = consumes<edm::View<pat::MET> >(iConfig.getParameter<edm::InputTag>("metPFT1Smear"));
-   metTokenPFT1SmearJetResUp_       = consumes<edm::View<pat::MET> >(iConfig.getParameter<edm::InputTag>("metPFT1SmearJetResUp"));
-   metTokenPFT1SmearJetResDown_     = consumes<edm::View<pat::MET> >(iConfig.getParameter<edm::InputTag>("metPFT1SmearJetResDown"));
-   metTokenPFT1JetResUp_            = consumes<edm::View<pat::MET> >(iConfig.getParameter<edm::InputTag>("metPFT1JetResUp"));
-   metTokenPFT1JetResDown_          = consumes<edm::View<pat::MET> >(iConfig.getParameter<edm::InputTag>("metPFT1JetResDown"));
-
-   metTokenPFT1JetEnUp_             = consumes<edm::View<pat::MET> >(iConfig.getParameter<edm::InputTag>("metPFT1JetEnUp"));
-   metTokenPFT1JetEnDown_           = consumes<edm::View<pat::MET> >(iConfig.getParameter<edm::InputTag>("metPFT1JetEnDown"));
-   metTokenPFT1UnclusteredEnUp_     = consumes<edm::View<pat::MET> >(iConfig.getParameter<edm::InputTag>("metPFT1UnclusteredEnUp"));
-   metTokenPFT1UnclusteredEnDown_   = consumes<edm::View<pat::MET> >(iConfig.getParameter<edm::InputTag>("metPFT1UnclusteredEnDown"));
-
 
    muonToken_           = consumes< std::vector<pat::Muon> >(iConfig.getParameter<edm::InputTag>("muons"));
+   electronToken_       = consumes< std::vector<pat::Electron> >(iConfig.getParameter<edm::InputTag>("electrons"));
    verticesToken_       = consumes< edm::View<reco::Vertex> >(iConfig.getParameter<edm::InputTag>("vertices"));
    genToken_            = consumes<GenEventInfoProduct>(iConfig.getParameter<edm::InputTag>("generator"));
    lheToken_            = consumes<LHEEventProduct>(iConfig.getParameter<edm::InputTag>("lheprod"));
@@ -219,6 +201,11 @@ MakeNtuple::MakeNtuple(const edm::ParameterSet& iConfig)
    //addPileupInfo_ = iConfig.getUntrackedParameter<edm::InputTag>("pileup");
    pileupToken_         = consumes<edm::View<PileupSummaryInfo> >(iConfig.getUntrackedParameter<edm::InputTag>("pileup"));
    rhoToken_            = consumes<double>(iConfig.getParameter<edm::InputTag>("rho"));
+
+   electronVetoIdMapToken_    = consumes<edm::ValueMap<bool>>(iConfig.getParameter<edm::InputTag>("electronVetoIdMap"));
+   electronLooseIdMapToken_   = consumes<edm::ValueMap<bool>>(iConfig.getParameter<edm::InputTag>("electronLooseIdMap"));
+   electronMediumIdMapToken_  = consumes<edm::ValueMap<bool>>(iConfig.getParameter<edm::InputTag>("electronMediumIdMap"));
+   electronTightIdMapToken_   = consumes<edm::ValueMap<bool>>(iConfig.getParameter<edm::InputTag>("electronTightIdMap"));
 
    jetSFType_           = iConfig.getParameter<std::string>("srcJetSF");
    jetResPtType_        = iConfig.getParameter<std::string>("srcJetResPt");
@@ -235,7 +222,7 @@ MakeNtuple::MakeNtuple(const edm::ParameterSet& iConfig)
 }
 
 
-MakeNtuple::~MakeNtuple()
+MakeEleNtuple::~MakeEleNtuple()
 {
  
    // do anything here that needs to be done at desctruction time
@@ -248,7 +235,7 @@ MakeNtuple::~MakeNtuple()
 // member functions
 //
 
-const double MakeNtuple::PU2015_MCf[NUMPUBINS] = {
+const double MakeEleNtuple::PU2015_MCf[NUMPUBINS] = {
    // Updated to PU for Summer16 from: SimGeneral/MixingModule/python/mix_2016_25ns_Moriond17MC_PoissonOOTPU_cfi.py 
    // pileup distribution for Spring2016 MC
    // obtained at https://twiki.cern.ch/twiki/bin/viewauth/CMS/PdmVPileUpDescription#Startup2015
@@ -330,7 +317,7 @@ const double MakeNtuple::PU2015_MCf[NUMPUBINS] = {
     1.33287e-05
 };
 
-const double MakeNtuple::PU2015_Dataf[NUMPUBINS] = {
+const double MakeEleNtuple::PU2015_Dataf[NUMPUBINS] = {
    // obtained with pileupCalc.py -i $JSON --inputLumiJSON $PILEUP_LATEST --calcMode true --minBiasXsec 69200 --maxPileupBin 75 --numPileupBins 75 PU_2016_${LUMI}_XSecCentral.root
    // 'true' distribution for 2016 RunA-H dataset
    // obtained with pileupCalc.py (04.21.2016)
@@ -413,7 +400,7 @@ const double MakeNtuple::PU2015_Dataf[NUMPUBINS] = {
 
 // ------------ method called for each event  ------------
 void
-MakeNtuple::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
+MakeEleNtuple::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
 {
    using namespace edm;
 
@@ -427,6 +414,16 @@ MakeNtuple::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
    muon_energy.clear();
    muon_phi.clear();
    muon_eta.clear();
+
+   ele_pt.clear();
+   ele_charge.clear();
+   ele_energy.clear();
+   ele_phi.clear();
+   ele_eta.clear();
+   ele_loose.clear();
+   ele_medium.clear();
+   ele_tight.clear();
+   
    jet_pt.clear();
    jet_passid.clear();
    jet_energy.clear();
@@ -459,27 +456,78 @@ MakeNtuple::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
    // leptons
    std::vector<reco::CandidatePtr> footprint;
    std::vector<reco::Candidate::LorentzVector> leptons;
-   for ( std::vector<EDGetTokenT<View<reco::Candidate> > >::const_iterator srcLeptons_i = lepTokens_.begin(); srcLeptons_i != lepTokens_.end(); ++srcLeptons_i ) {
+   for ( std::vector<EDGetTokenT<View<reco::Candidate> > >::const_iterator srcLeptons_i = lepTokens_.begin();
+         srcLeptons_i != lepTokens_.end(); ++srcLeptons_i ) {
       Handle<reco::CandidateView> leptons_i;
       iEvent.getByToken(*srcLeptons_i, leptons_i);
-      //std::cout << "Leptons size tool " << leptons_i->size() << std::endl;
-      for ( reco::CandidateView::const_iterator lepton = leptons_i->begin(); lepton != leptons_i->end(); ++lepton ) {
+      for ( reco::CandidateView::const_iterator lepton = leptons_i->begin();
+            lepton != leptons_i->end(); ++lepton ) {
          // cut on lepton pt
-         //std::cout << lepton->pt() << std::endl;
          if( lepton->pt() > 10 ){
             leptons.push_back(lepton->p4());
             for( unsigned int n=0; n < lepton->numberOfSourceCandidatePtrs(); n++){
                if( lepton->sourceCandidatePtr(n).isNonnull() and lepton->sourceCandidatePtr(n).isAvailable() ){
-                  //std::cout << "Adding to footprint " << lepton->pt() << std::endl;
-                  //footprint.insert(lepton->sourceCandidatePtr(n));
                   footprint.push_back(lepton->sourceCandidatePtr(n));
                }
             }
          }
       }
    }
-   //std::cout << "Pos1 f size " << footprint.size() << std::endl;
 
+   edm::Handle<edm::ValueMap<bool>> veto_id_decisions;
+   edm::Handle<edm::ValueMap<bool>> loose_id_decisions;
+   edm::Handle<edm::ValueMap<bool>> medium_id_decisions;
+   edm::Handle<edm::ValueMap<bool>> tight_id_decisions;
+   iEvent.getByToken(electronVetoIdMapToken_, veto_id_decisions);
+   iEvent.getByToken(electronLooseIdMapToken_, loose_id_decisions);
+   iEvent.getByToken(electronMediumIdMapToken_, medium_id_decisions);
+   iEvent.getByToken(electronTightIdMapToken_, tight_id_decisions);
+
+
+   // electrons for event selection (not for tuning)!
+   Handle< std::vector<pat::Electron> > electrons;
+   iEvent.getByToken(electronToken_, electrons);
+   nMediumElectrons = 0;
+   nLooseElectrons = 0;
+   nTightElectrons = 0;
+   //std::cout << "Trying to get electrons" << std::endl;
+   for ( std::vector<pat::Electron>::const_iterator electron = electrons->begin();
+         electron != electrons->end(); ++electron ) {
+
+      const edm::Ptr<pat::Electron> elPtr (electrons, electron - electrons->begin() );
+      bool isLoose = (*loose_id_decisions) [elPtr];
+      bool isMedium = (*medium_id_decisions) [elPtr];
+      bool isTight = (*tight_id_decisions) [elPtr];
+
+      //if (isLoose && true ) std::cout << "Loose" << electron->pt() << std::endl;
+      //if (isMedium && true ) std::cout << "Medium" << electron->pt() << std::endl;
+      //if (isTight && true ) std::cout << "Tight" << electron->pt() << std::endl;
+
+
+      //bool medEleId = electron->isMediumElectron((*(vertices->begin())));
+      //bool looseEleId = electron->isLooseElectron((*(vertices->begin())));
+
+      double e_dr04chHad      = electron->dr04TkSumPt();
+      double e_dr04photons    = electron->dr04EcalRecHitSumEt();
+      double e_dr04neutHad    = electron->dr04HcalTowerSumEt();
+
+      bool eleIso = (e_dr04chHad + e_dr04neutHad + e_dr04photons)/electron->pt() < 0.12;//can be changed to 0.15 before
+      if ( electron->pt() > 20 and fabs(electron->eta()) < 2.4 and eleIso and isLoose){
+            //std::cout << "Found an electron" << std::endl;    
+            ele_pt.push_back( electron->pt() );
+            ele_eta.push_back( electron->eta() );
+            ele_phi.push_back( electron->phi() );
+            ele_charge.push_back( electron->charge() );
+            ele_loose.push_back( isLoose );
+            ele_medium.push_back( isMedium );
+            ele_tight.push_back( isTight );
+            nLooseElectrons++;
+            if (isMedium) nMediumElectrons++;
+            if (isTight) nTightElectrons++;
+            //if isMedium: 
+      //  nMediumElectrons++;
+      }
+   }
 
    // muons (for event selection)
    Handle< std::vector<pat::Muon> > muons;
@@ -530,61 +578,22 @@ MakeNtuple::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
 
    // disambiguate jets and leptons
    std::vector<pat::Jet> cleanjets = cleanJets(jetThreshold, 0.4, jets, leptons);
-   //std::vector<pat::Jet> cleanjets = cleanJets(0, 0.4, jets, leptons);
-   //std::cout << "Size of jets in tool " << jets.size() << std::endl;
+
    // loop over jets to disambiguate candidates
    for(std::vector<pat::Jet>::const_iterator jet = cleanjets.begin(); jet != cleanjets.end(); ++jet) {
       for( unsigned int n=0; n < jet->numberOfSourceCandidatePtrs(); n++){
          if( jet->sourceCandidatePtr(n).isNonnull() and jet->sourceCandidatePtr(n).isAvailable() ){
-            //footprint.insert(jet->sourceCandidatePtr(n));
             footprint.push_back(jet->sourceCandidatePtr(n));
          }
       }
    }
-   //std::cout << "Pos2 f size " << footprint.size() << std::endl;
-
 
    // met
    edm::Handle<edm::View<pat::MET> > metHandle;
-   edm::Handle<edm::View<pat::MET> > metHandlePF;
-   edm::Handle<edm::View<pat::MET> > metHandlePFT1;
-   edm::Handle<edm::View<pat::MET> > metHandlePFT1Smear;
-   edm::Handle<edm::View<pat::MET> > metHandlePFT1SmearJetResUp;
-   edm::Handle<edm::View<pat::MET> > metHandlePFT1SmearJetResDown;
-   edm::Handle<edm::View<pat::MET> > metHandlePFT1JetResUp;
-   edm::Handle<edm::View<pat::MET> > metHandlePFT1JetResDown;
-   edm::Handle<edm::View<pat::MET> > metHandlePFT1JetEnUp;
-   edm::Handle<edm::View<pat::MET> > metHandlePFT1JetEnDown;
-   edm::Handle<edm::View<pat::MET> > metHandlePFT1UnclusteredEnUp;
-   edm::Handle<edm::View<pat::MET> > metHandlePFT1UnclusteredEnDown;
-
 
    iEvent.getByToken(metToken_, metHandle);
-   iEvent.getByToken(metTokenPF_, metHandlePF);
-   iEvent.getByToken(metTokenPFT1_, metHandlePFT1);
-   iEvent.getByToken(metTokenPFT1Smear_, metHandlePFT1Smear);
-   iEvent.getByToken(metTokenPFT1SmearJetResUp_, metHandlePFT1SmearJetResUp);
-   iEvent.getByToken(metTokenPFT1SmearJetResDown_, metHandlePFT1SmearJetResDown);
-   iEvent.getByToken(metTokenPFT1JetResUp_, metHandlePFT1JetResUp);
-   iEvent.getByToken(metTokenPFT1JetResDown_, metHandlePFT1JetResDown);
-
-   iEvent.getByToken(metTokenPFT1JetEnUp_, metHandlePFT1JetEnUp);
-   iEvent.getByToken(metTokenPFT1JetEnDown_, metHandlePFT1JetEnDown);
-   iEvent.getByToken(metTokenPFT1UnclusteredEnUp_, metHandlePFT1UnclusteredEnUp);
-   iEvent.getByToken(metTokenPFT1UnclusteredEnDown_, metHandlePFT1UnclusteredEnDown);
 
    const pat::MET& met                      = (*metHandle)[0];
-   const pat::MET& metPF                    = (*metHandlePF)[0];
-   const pat::MET& metPFT1                  = (*metHandlePFT1)[0];
-   const pat::MET& metPFT1Smear             = (*metHandlePFT1Smear)[0];
-   const pat::MET& metPFT1SmearJetResUp     = (*metHandlePFT1SmearJetResUp)[0];
-   const pat::MET& metPFT1SmearJetResDown   = (*metHandlePFT1SmearJetResDown)[0];
-   const pat::MET& metPFT1JetResUp          = (*metHandlePFT1JetResUp)[0];
-   const pat::MET& metPFT1JetResDown        = (*metHandlePFT1JetResDown)[0];
-   const pat::MET& metPFT1JetEnUp           = (*metHandlePFT1JetEnUp)[0];
-   const pat::MET& metPFT1JetEnDown         = (*metHandlePFT1JetEnDown)[0];
-   const pat::MET& metPFT1UnclusteredEnUp   = (*metHandlePFT1UnclusteredEnUp)[0];
-   const pat::MET& metPFT1UnclusteredEnDown = (*metHandlePFT1UnclusteredEnDown)[0];
 
 
    // put met into a 4-vector, implement type-1 corrections
@@ -601,41 +610,6 @@ MakeNtuple::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
    }
    */
 
-   met_PFT1Smear_pt  = metPFT1Smear.pt();
-   met_PFT1Smear_sig = metPFT1Smear.metSignificance();
-
-   met_PFT1SmearJetResUp_pt  = metPFT1SmearJetResUp.pt();
-   met_PFT1SmearJetResUp_sig = metPFT1SmearJetResUp.metSignificance();
-
-   met_PFT1SmearJetResDown_pt  = metPFT1SmearJetResDown.pt();
-   met_PFT1SmearJetResDown_sig = metPFT1SmearJetResDown.metSignificance();
-
-   met_PFT1JetResUp_pt  = metPFT1JetResUp.pt();
-   met_PFT1JetResUp_sig = metPFT1JetResUp.metSignificance();
-
-   met_PFT1JetResDown_pt  = metPFT1JetResDown.pt();
-   met_PFT1JetResDown_sig = metPFT1JetResDown.metSignificance();
-
-   met_PFT1JetEnUp_pt  = metPFT1JetEnUp.pt();
-   met_PFT1JetEnUp_sig = metPFT1JetEnUp.metSignificance();
-
-   met_PFT1JetEnDown_pt  = metPFT1JetEnDown.pt();
-   met_PFT1JetEnDown_sig = metPFT1JetEnDown.metSignificance();
-
-   met_PFT1UnclusteredEnUp_pt  = metPFT1UnclusteredEnUp.pt();
-   met_PFT1UnclusteredEnUp_sig = metPFT1UnclusteredEnUp.metSignificance();
-   met_PFT1UnclusteredEnUp_phi = metPFT1UnclusteredEnUp.phi();
-
-   met_PFT1UnclusteredEnDown_pt  = metPFT1UnclusteredEnDown.pt();
-   met_PFT1UnclusteredEnDown_sig = metPFT1UnclusteredEnDown.metSignificance();
-   met_PFT1UnclusteredEnDown_phi = metPFT1UnclusteredEnDown.phi();
-
-
-   met_PFT1_pt  = metPFT1.pt();
-   met_PFT1_sig = metPFT1.metSignificance();
-
-   met_PF_pt  = metPF.pt();
-   met_PF_sig = metPF.metSignificance();
 
    met_pt = met.pt();
    met_sig = met.metSignificance();
@@ -644,16 +618,6 @@ MakeNtuple::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
    met_eta = met.eta();
 
 
-   /*
-   std::cout << "met: " << met_pt << std::endl;
-   std::cout << "metPF: " << met_PF_pt << std::endl;
-   std::cout << "metPFT1: " << met_PFT1_pt << std::endl;
-   std::cout << "metPFT1Smear: " << met_PFT1Smear_pt << std::endl;
-   std::cout << "metPFT1SmearJetResUp: " << met_PFT1SmearJetResUp_pt << std::endl;
-   std::cout << "metPFT1SmearJetResDown: " << met_PFT1SmearJetResDown_pt << std::endl;
-   std::cout << "metPFT1JetResUp: " << met_PFT1JetResUp_pt << std::endl;
-   std::cout << "metPFT1JetResDown: " << met_PFT1JetResDown_pt << std::endl;
-   */
    /*
    std::cout << "MET (new) = " << met_pt << std::endl;
 
@@ -676,45 +640,18 @@ MakeNtuple::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
    fflush(stdout);
    */
 
-   //// candidates, old version
-   //std::vector<reco::Candidate::LorentzVector> candidates;
-   //for(View<reco::Candidate>::const_iterator cand = input->begin();
-   //      cand != input->end(); ++cand) {
-   //   unsigned int iter = cand - input->begin();
-   //   if (std::find(footprint.begin(), footprint.end(),
-   //            reco::CandidatePtr(input,iter)) != footprint.end()) {
-   //      continue;
-   //   }
-   //   candidates.push_back( cand->p4() );
-   //}
-   
-   met_sumpt = 0;
-   int nCand = 0;
+   // candidates
    std::vector<reco::Candidate::LorentzVector> candidates;
-   //std::cout << "Input size in tool " << input->size() << std::endl;
-   //std::cout << "Footprint size in tool " << footprint.size() << std::endl;
-
-   for(size_t i = 0; i < input->size();  ++i) {
-      bool cleancand = true;
-      //if(footprint.find( input->ptrAt(i) )==footprint.end()) {
-      if (std::find(footprint.begin(), footprint.end(), input->ptrAt(i)) == footprint.end()) {
-        for( std::vector<reco::CandidatePtr>::const_iterator fit=footprint.begin();fit!=footprint.end();fit++) { //set, const_iterator
-          if( ((*fit)->p4()-(*input)[i].p4()).Et2()<0.000025 ){
-            cleancand = false;
-            break;
-          }
-        }
-        if( cleancand ){
-          candidates.push_back( (*input)[i].p4() );
-          met_sumpt += (*input)[i].pt();
-          nCand++;
-        }
+   for(View<reco::Candidate>::const_iterator cand = input->begin();
+         cand != input->end(); ++cand) {
+      unsigned int iter = cand - input->begin();
+      if (std::find(footprint.begin(), footprint.end(),
+               reco::CandidatePtr(input,iter)) != footprint.end()) {
+         continue;
       }
+      candidates.push_back( cand->p4() );
    }
 
-
-   //std::cout << "Test sumpt " << met_sumpt << std::endl;
-   //std::cout << "nCand tool " << nCand << std::endl;
    // resolutions
    /*
    std::string path = "METSigTuning/MakeNtuple/data/";
@@ -792,17 +729,16 @@ MakeNtuple::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
    // candidates already have clean jets removed
    met_sumpt_inputs = 0;
    met_sumpt = 0;
-   for( std::vector<reco::Candidate::LorentzVector>::const_iterator cand = candidates.begin(); cand != candidates.end(); ++cand){
-      if (cand->pt()>0){
-        met_sumpt += cand->Pt();
-        cand_pt.push_back( cand->Pt() );
-        //cand_energy.push_back( cand->energy() );
-        cand_phi.push_back( cand->Phi() );
-        cand_eta.push_back( cand->Eta() );
-        met_sumpt_inputs++;
-      }
+   for( std::vector<reco::Candidate::LorentzVector>::const_iterator cand = candidates.begin();
+         cand != candidates.end(); ++cand){
+      met_sumpt += cand->Pt();
+      cand_pt.push_back( cand->Pt() );
+      //cand_energy.push_back( cand->energy() );
+      cand_phi.push_back( cand->Phi() );
+      cand_eta.push_back( cand->Eta() );
+      met_sumpt_inputs++;
    }
-   //std::cout << "intermediate sumpt in tool " << met_sumpt << std::endl;
+
    /*
    // loop over leptons
    for ( std::vector<reco::Candidate::LorentzVector>::const_iterator lepton = leptons.begin();
@@ -840,8 +776,7 @@ MakeNtuple::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
       // split into high-pt and low-pt sector
       if( jpt > jetThreshold ){
          // high-pt jets enter into the covariance matrix via JER
-         //std::cout << "Jet parameters in tool" << std::endl;
-         //std::cout << jpt << " " << jeta << " " << sigmapt << " " << sigmaphi << std::endl;
+
          jet_pt.push_back( jet->pt() );
          jet_energy.push_back( jet->energy() );
          jet_phi.push_back( jet->phi() );
@@ -882,7 +817,6 @@ MakeNtuple::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
 
       }
    }
-   //std::cout << "sumpt in tool " << met_sumpt << std::endl;
    int i = 0;
    x_tot = 0;
    y_tot = 0;
@@ -908,9 +842,7 @@ MakeNtuple::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
              c_yy += (cand_y.at(i) - y_bar)*(cand_y.at(i) - y_bar);
              i++;
    }
-   //std :: cout << "MET pT " << met_pt << std::endl;
-   //std :: cout << "MET sum_pT " << met_sumpt << std::endl;
-   //std :: cout << "Number of unclustered candidates " << met_sumpt_inputs << std::endl;
+   
    //std::cout << c_xx << " " << c_xy << " " << c_yy << std::endl;
    c_xx = (cand_pt.size()-1.)/cand_pt.size() * c_xx;
    c_xy = (cand_pt.size()-1.)/cand_pt.size() * c_xy;
@@ -927,7 +859,7 @@ MakeNtuple::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
    //std::cout << "alt_sumpt " << alt_sumpt << std::endl;
    events_total++;
    //bool pass_selection = (nmuons == 2) and (dimuon_mass > 60) and (dimuon_mass < 120);
-   bool pass_selection = (nmuons == 2) and (dimuon_mass > 80) and (dimuon_mass < 100);
+   bool pass_selection = nMediumElectrons>0; //= (nmuons == 2) and (dimuon_mass > 80) and (dimuon_mass < 100);
    if( pass_selection ){
       results_tree -> Fill();
       events_pass++;
@@ -944,30 +876,35 @@ MakeNtuple::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
 
 }
 
-std::vector<pat::Jet> MakeNtuple::cleanJets(double ptThreshold, double dRmatch, std::vector<pat::Jet>& jets, std::vector<reco::Candidate::LorentzVector>& leptons){
-    double dR2match = dRmatch*dRmatch;
-    std::vector<pat::Jet> retVal;
-    for ( std::vector<pat::Jet>::const_iterator jet = jets.begin(); jet != jets.end(); ++jet ) {
-        bool isOverlap = false;
-        for ( std::vector<reco::Candidate::LorentzVector>::const_iterator lepton = leptons.begin(); lepton != leptons.end(); ++lepton ) {
-            TLorentzVector ljet, llep;
-            ljet.SetPtEtaPhiE( jet->pt(), jet->eta(), jet->phi(), jet->energy() );
-            llep.SetPtEtaPhiE( lepton->pt(), lepton->eta(), lepton->phi(), lepton->energy() );
-            if ( pow(ljet.DeltaR( llep ),2) < dR2match ) isOverlap = true;
-            //if ( reco::deltaR2(ljet, llep) < dR2match ) isOverlap = true;
-        }
-        //if ( jet->pt() > ptThreshold && !isOverlap ){
-        if ( !isOverlap ){
-            retVal.push_back(*jet);
-        }
-    }
-    return retVal;
+   std::vector<pat::Jet>
+MakeEleNtuple::cleanJets(double ptThreshold, double dRmatch,
+      std::vector<pat::Jet>& jets, std::vector<reco::Candidate::LorentzVector>& leptons)
+{
+   double dR2match = dRmatch*dRmatch;
+   std::vector<pat::Jet> retVal;
+   for ( std::vector<pat::Jet>::const_iterator jet = jets.begin();
+         jet != jets.end(); ++jet ) {
+      bool isOverlap = false;
+      for ( std::vector<reco::Candidate::LorentzVector>::const_iterator lepton = leptons.begin();
+            lepton != leptons.end(); ++lepton ) {
+         TLorentzVector ljet, llep;
+         ljet.SetPtEtaPhiE( jet->pt(), jet->eta(), jet->phi(), jet->energy() );
+         llep.SetPtEtaPhiE( lepton->pt(), lepton->eta(), lepton->phi(), lepton->energy() );
+         if ( pow(ljet.DeltaR( llep ),2) < dR2match ) isOverlap = true;
+      }
+      //if ( jet->pt() > ptThreshold && !isOverlap ){
+      if ( !isOverlap ){
+         retVal.push_back(*jet);
+      }
+   }
+
+   return retVal;
 }
 
 
 // ------------ method called once each job just before starting event loop  ------------
 void 
-MakeNtuple::beginJob()
+MakeEleNtuple::beginJob()
 {
 
    events_total=0, events_pass=0;
@@ -998,6 +935,17 @@ MakeNtuple::beginJob()
    results_tree -> Branch("muon_charge", &muon_charge);
    //results_tree -> Branch("muon_OS", &charge);
 
+   results_tree -> Branch("ele_pt", &ele_pt);
+   results_tree -> Branch("ele_energy", &ele_energy);
+   results_tree -> Branch("ele_phi", &ele_phi);
+   results_tree -> Branch("ele_eta", &ele_eta);
+   results_tree -> Branch("ele_charge", &ele_charge);
+   results_tree -> Branch("ele_loose", &ele_loose);
+   results_tree -> Branch("ele_medium", &ele_medium);
+   results_tree -> Branch("ele_tight", &ele_tight);
+
+
+
    /*
    results_tree -> Branch("lep_pt", &lep_pt);
    results_tree -> Branch("lep_energy", &lep_energy);
@@ -1023,41 +971,6 @@ MakeNtuple::beginJob()
    results_tree -> Branch("cov_xy", &c_xy);
    results_tree -> Branch("cov_yy", &c_yy);
    
-   results_tree -> Branch("met_PF_pt", &met_PF_pt);
-   results_tree -> Branch("met_PF_sig", &met_PF_sig);
-
-   results_tree -> Branch("met_PFT1_pt", &met_PFT1_pt);
-   results_tree -> Branch("met_PFT1_sig", &met_PFT1_sig);
-
-   results_tree -> Branch("met_PFT1Smear_pt", &met_PFT1Smear_pt);
-   results_tree -> Branch("met_PFT1Smear_sig", &met_PFT1Smear_sig);
-
-   results_tree -> Branch("met_PFT1SmearJetResUp_pt", &met_PFT1SmearJetResUp_pt);
-   results_tree -> Branch("met_PFT1SmearJetResUp_sig", &met_PFT1SmearJetResUp_sig);
-
-   results_tree -> Branch("met_PFT1SmearJetResDown_pt", &met_PFT1SmearJetResDown_pt);
-   results_tree -> Branch("met_PFT1SmearJetResDown_sig", &met_PFT1SmearJetResDown_sig);
-
-   results_tree -> Branch("met_PFT1JetResDown_pt", &met_PFT1JetResDown_pt);
-   results_tree -> Branch("met_PFT1JetResDown_sig", &met_PFT1JetResDown_sig);
-
-   results_tree -> Branch("met_PFT1JetResUp_pt", &met_PFT1JetResUp_pt);
-   results_tree -> Branch("met_PFT1JetResUp_sig", &met_PFT1JetResUp_sig);
-
-   results_tree -> Branch("met_PFT1JetEnDown_pt",  &met_PFT1JetEnDown_pt);
-   results_tree -> Branch("met_PFT1JetEnDown_sig", &met_PFT1JetEnDown_sig);
-
-   results_tree -> Branch("met_PFT1JetEnUp_pt",  &met_PFT1JetEnUp_pt);
-   results_tree -> Branch("met_PFT1JetEnUp_sig", &met_PFT1JetEnUp_sig);
-
-   results_tree -> Branch("met_PFT1UnclusteredEnDown_pt",  &met_PFT1UnclusteredEnDown_pt);
-   results_tree -> Branch("met_PFT1UnclusteredEnDown_sig", &met_PFT1UnclusteredEnDown_sig);
-   results_tree -> Branch("met_PFT1UnclusteredEnDown_phi", &met_PFT1UnclusteredEnDown_phi);
-
-   results_tree -> Branch("met_PFT1UnclusteredEnUp_pt",  &met_PFT1UnclusteredEnUp_pt);
-   results_tree -> Branch("met_PFT1UnclusteredEnUp_sig", &met_PFT1UnclusteredEnUp_sig);
-   results_tree -> Branch("met_PFT1UnclusteredEnUp_phi",  &met_PFT1UnclusteredEnUp_phi);
-
    results_tree -> Branch("met_pt", &met_pt);
    results_tree -> Branch("met_sig", &met_sig);
    results_tree -> Branch("met_energy", &met_energy);
@@ -1066,6 +979,10 @@ MakeNtuple::beginJob()
    results_tree -> Branch("met_sumpt", &met_sumpt);
 
    results_tree -> Branch("nmuons", &nmuons);
+   results_tree -> Branch("nLooseElectrons", &nLooseElectrons);
+   results_tree -> Branch("nMediumElectrons", &nMediumElectrons);
+   results_tree -> Branch("nTightElectrons", &nTightElectrons);
+
    results_tree -> Branch("dimuon_mass", &dimuon_mass);
    results_tree -> Branch("nvertices", &nvertices);
    results_tree -> Branch("weight_pu", &weight_pu);
@@ -1075,7 +992,7 @@ MakeNtuple::beginJob()
 
 // ------------ method called once each job just after ending the event loop  ------------
 void 
-MakeNtuple::endJob() 
+MakeEleNtuple::endJob() 
 {
    OutFile__file -> Write();
    OutFile__file -> Close();
@@ -1117,7 +1034,7 @@ MakeNtuple::endLuminosityBlock(edm::LuminosityBlock const&, edm::EventSetup cons
 
 // ------------ method fills 'descriptions' with the allowed parameters for the module  ------------
 void
-MakeNtuple::fillDescriptions(edm::ConfigurationDescriptions& descriptions) {
+MakeEleNtuple::fillDescriptions(edm::ConfigurationDescriptions& descriptions) {
   //The following says we do not know what parameters are allowed so do no validation
   // Please change this to state exactly what you do use, even if it is no parameters
   edm::ParameterSetDescription desc;
@@ -1126,4 +1043,4 @@ MakeNtuple::fillDescriptions(edm::ConfigurationDescriptions& descriptions) {
 }
 
 //define this as a plug-in
-DEFINE_FWK_MODULE(MakeNtuple);
+DEFINE_FWK_MODULE(MakeEleNtuple);

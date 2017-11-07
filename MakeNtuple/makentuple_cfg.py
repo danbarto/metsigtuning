@@ -11,7 +11,7 @@ options.setDefault( 'outputFile',
       )
 
 options.register( 'globalTag',
-      '80X_mcRun2_asymptotic_2016_TrancheIV_v8',
+      #'80X_mcRun2_asymptotic_2016_TrancheIV_v8',
       #'80X_dataRun2_2016SeptRepro_v7',
 
       #'80X_mcRun2_asymptotic_2016_miniAODv2_v1',
@@ -21,7 +21,7 @@ options.register( 'globalTag',
       #'80X_mcRun2_asymptotic_v17',
       #'80X_dataRun2_v18',
       #'80X_dataRun2_Prompt_v11',
-      #'80X_dataRun2_Candidate_2016_09_02_10_26_48',
+      '80X_dataRun2_Candidate_2016_09_02_10_26_48',
       #'74X_dataRun2_Prompt_v1',
       #'MCRUN2_74_V9',
       #'GR_P_V56',

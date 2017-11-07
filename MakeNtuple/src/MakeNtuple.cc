@@ -134,6 +134,8 @@ class MakeNtuple : public edm::EDAnalyzer {
       static const double PU2015_Dataf[NUMPUBINS];
 
       TTree *results_tree;
+      TTree *weights_tree;
+
       TFile *OutFile__file;
       std::string OutputFileName_;
 
@@ -148,6 +150,8 @@ class MakeNtuple : public edm::EDAnalyzer {
       std::vector<double> jet_corrL1, jet_corrL123;
       std::vector<bool> jet_passid;
       std::vector<double> jet_sf;
+      double sumweight = 0;
+
       double c_xx, c_xy, c_yy,x_tot, x_bar, y_tot, y_bar;
       double dimuon_mass;
       double met_pt, met_energy, met_phi, met_eta, met_sumpt, met_sig, alt_sumpt;
@@ -762,6 +766,7 @@ MakeNtuple::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
       //std::cout << mcweight << " " << mcweightSum << std::endl;
       //fflush(stdout);
    }
+   sumweight += mcweight;
 
    weight_pu = 1.0;
    if( runOnMC_ ){
@@ -984,6 +989,10 @@ MakeNtuple::beginJob()
    }
    LumiWeights_ = edm::LumiReWeighting( PU2015_MC, PU2015_Data);
 
+   weights_tree = new TTree("weights", "weights");
+   weights_tree -> Branch("sumweight", &sumweight, "sumweight/D");
+
+
    results_tree = new TTree("events", "events");
    results_tree -> Branch("run", &run, "run/I");
    results_tree -> Branch("lumi", &lumi, "lumi/I");
@@ -1077,6 +1086,9 @@ MakeNtuple::beginJob()
 void 
 MakeNtuple::endJob() 
 {
+   std::cout << "Sum of weights: " << sumweight << std::endl;
+   weights_tree -> Fill();
+
    OutFile__file -> Write();
    OutFile__file -> Close();
    std::cout << " *** NUMBER OF EVENTS PASSING SELECTION *** " << std::endl;
